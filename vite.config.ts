@@ -3,13 +3,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Repo is served from https://krmaeots.github.io/Gymlog/, so assets must be
-// referenced under that sub-path in the production build. Locally (dev/test)
-// we keep the root base so everything resolves at http://localhost:5173/.
-const base = process.env.NODE_ENV === 'production' ? '/Gymlog/' : '/'
-
-export default defineConfig({
-  base,
+// Repo is served from https://krmaeots.github.io/Gymlog/, so production assets
+// must resolve under that sub-path. `vite build` runs with command === 'build';
+// dev/preview/test use the root base. (Using `command` avoids relying on
+// `process`, which isn't typed without @types/node.)
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/Gymlog/' : '/',
   plugins: [
     react(),
     VitePWA({
@@ -47,4 +46,4 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
   },
-})
+}))
