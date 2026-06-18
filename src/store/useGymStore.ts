@@ -1,0 +1,110 @@
+import { create } from 'zustand'
+import { calcNext, isPersonalRecord } from '../domain/overload'
+import type { Day, Exercise, GymState, SetEntry, Settings } from '../domain/types'
+import { coerceState, loadState, reconcileEntries, saveState, seedState } from '../lib/storage'
+import * as P from '../lib/program'
+import { findExercise } from '../lib/program'
+import { useToast } from './useToast'
+
+interface GymActions {
+  /** Record a performed exercise; updates its log and next-week target. */
+  logExercise: (exerciseId: string, sets: SetEntry[]) => void
+  /** Advance to the next training week. */
+  startNextWeek: () => void
+  /** Wipe everything back to a fresh default program. */
+  resetAll: () => void
+  /** Replace the entire state from imported JSON (validated/migrated). */
+  importState: (raw: unknown) => void
+  updateSettings: (patch: Partial<Settings>) => void
+
+  // ── Program editing ──────────────────────────────────────────────
+  addDay: (day: Day) => void
+  updateDay: (dayKey: string, patch: Partial<Omit<Day, 'exercises'>>) => void
+  removeDay: (dayKey: string) => void
+  addExercise: (dayKey: string, exercise: Exercise) => void
+  updateExercise: (dayKey: string, exerciseId: string, patch: Partial<Exercise>) => void
+  removeExercise: (dayKey: string, exerciseId: string) => void
+  moveExercise: (dayKey: string, exerciseId: string, direction: -1 | 1) => void
+}
+
+export type GymStore = GymState & GymActions
+
+const DATA_KEYS = ['schemaVersion', 'week', 'program', 'targets', 'logs', 'settings'] as const
+
+/** Extract just the persistable data slice (drops action functions). */
+function persistable(store: GymStore): GymState {
+  return DATA_KEYS.reduce((acc, key) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(acc as any)[key] = store[key]
+    return acc
+  }, {} as GymState)
+}
+
+export const useGymStore = create<GymStore>((set, get) => ({
+  ...loadState(),
+
+  logExercise: (exerciseId, sets) => {
+    const state = get()
+    const found = findExercise(state.program, exerciseId)
+    if (!found) return
+    const { exercise } = found
+    const target = state.targets[exerciseId] ?? {
+      weight: exercise.weightStart,
+      reps: exercise.repsLow,
+      repsHigh: exercise.repsHigh,
+    }
+    const history = state.logs[exerciseId] ?? []
+
+    const next = calcNext(exercise, sets, target, history, state.settings)
+    const pr = isPersonalRecord(exercise, sets, history)
+
+    set({
+      targets: { ...state.targets, [exerciseId]: { weight: next.weight, reps: next.reps, repsHigh: next.repsHigh } },
+      logs: {
+        ...state.logs,
+        [exerciseId]: [
+          ...history,
+          { week: state.week, date: new Date().toISOString(), sets, pr, change: next.change },
+        ],
+      },
+    })
+  },
+
+  startNextWeek: () => set((s) => ({ week: s.week + 1 })),
+
+  resetAll: () => set(seedState()),
+
+  importState: (raw) => set(coerceState(raw)),
+
+  updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+
+  // Add/remove run reconcileEntries so new exercises get a target+log and
+  // deleted ones have their orphaned target+log pruned (no unbounded growth).
+  addDay: (day) => set((s) => reconcileEntries({ ...s, program: P.addDay(s.program, day) })),
+  updateDay: (dayKey, patch) => set((s) => ({ program: P.updateDay(s.program, dayKey, patch) })),
+  removeDay: (dayKey) => set((s) => reconcileEntries({ ...s, program: P.removeDay(s.program, dayKey) })),
+  addExercise: (dayKey, exercise) =>
+    set((s) => reconcileEntries({ ...s, program: P.addExercise(s.program, dayKey, exercise) })),
+  updateExercise: (dayKey, exerciseId, patch) =>
+    set((s) => ({ program: P.updateExercise(s.program, dayKey, exerciseId, patch) })),
+  removeExercise: (dayKey, exerciseId) =>
+    set((s) => reconcileEntries({ ...s, program: P.removeExercise(s.program, dayKey, exerciseId) })),
+  moveExercise: (dayKey, exerciseId, direction) =>
+    set((s) => ({ program: P.moveExercise(s.program, dayKey, exerciseId, direction) })),
+}))
+
+let storageHealthy = true
+/** Whether the most recent persist succeeded (false when storage is full/unavailable). */
+export const isStorageHealthy = () => storageHealthy
+
+// Persist on every change. JSON serialisation drops the action functions, but
+// we select the data slice explicitly to be safe and forward-compatible.
+useGymStore.subscribe((store) => {
+  const ok = saveState(persistable(store))
+  // Warn once when persistence first fails (quota exceeded / private mode) so
+  // the user learns their data isn't being saved now — not on the next reload.
+  if (!ok && storageHealthy) {
+    useToast.getState().show('⚠️ Salvestamine ebaõnnestus — mälu võib olla täis')
+  }
+  storageHealthy = ok
+})
