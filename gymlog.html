@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GymLog</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; padding: 0; background: #0d0d0d; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type=number] { -moz-appearance: textfield; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+const DAYS = [
+  {
+    key: "push", name: "Push — Rind, Õlad, Triitseps", sub: "4 harjutust · ~45–50 min",
+    exercises: [
+      { id: "kang_press", name: "Kangiga lamades rinnalt surumine", note: "Põhiliigutus — seo kõhulihased, kontrollitud tempo", sets: 4, repsLow: 6, repsHigh: 8, weightStart: 40, weightStep: 2.5, hasWeight: true },
+      { id: "rinna_masin", name: "Rinna masin", note: "Kontrollitud surumine, pigista tipus 1 sek", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 40, weightStep: 5, hasWeight: true },
+      { id: "ohp", name: "Õlapress hantlitega (istudes)", note: "Sirge selg, küünarnukid 90° all", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 12.5, weightStep: 2.5, hasWeight: true },
+      { id: "triits_masin", name: "Triitseps masin (ette kallutades)", note: "Küünarnukid fikseeritud, suru lõpuni alla", sets: 3, repsLow: 10, repsHigh: 12, weightStart: 80, weightStep: 5, hasWeight: true },
+    ]
+  },
+  {
+    key: "pull", name: "Pull — Selg, Bitseps", sub: "4 harjutust · ~45–50 min",
+    exercises: [
+      { id: "maatombe", name: "Rumäniamaatõmme (kangiga)", note: "Selg sirge, tunne venitust tagareies — töötab ka tuharal!", sets: 4, repsLow: 6, repsHigh: 8, weightStart: 40, weightStep: 5, hasWeight: true },
+      { id: "lai_haare", name: "Lai haare plokis (lat pulldown)", note: "Tõmba rinnale, küünarnukid alla-taha, ära kiigu", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 45, weightStep: 5, hasWeight: true },
+      { id: "selg_masin", name: "Masinal seljtõmme (seated row)", note: "Pigista abaluud kokku lõppasendis, hoia 1 sek", sets: 3, repsLow: 10, repsHigh: 12, weightStart: 35, weightStep: 5, hasWeight: true },
+      { id: "bitseps", name: "Bitseps — hantliga käärltõmme", note: "Küünarnukid fikseeritud keha kõrval, puhas liigutus", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 15, weightStep: 2.5, hasWeight: true },
+    ]
+  },
+  {
+    key: "jalad", name: "Jalad — Tuhar fookusega", sub: "5 harjutust · ~50 min · tuhar = prioriteet",
+    exercises: [
+      { id: "hip_thrust", name: "Hip thrust (kangiga)", note: "🍑 Nr 1 tuharaharjutus — puusad üles, pigista tipus täielikult", sets: 4, repsLow: 8, repsHigh: 10, weightStart: 40, weightStep: 5, hasWeight: true },
+      { id: "bulgaaria", name: "Bulgaaria split squat (hantliga)", note: "🍑 Tagumine jalg pingil — tuhar töötab rohkem kui tavakükkis", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 10, weightStep: 2.5, hasWeight: true },
+      { id: "leg_press", name: "Leg press", note: "Jalad kõrgemal plaadil = rohkem tuhart. Täisamplituud.", sets: 3, repsLow: 10, repsHigh: 12, weightStart: 80, weightStep: 5, hasWeight: true },
+      { id: "tagareis", name: "Tagareis kõhuli (leg curl)", note: "Tahapoole reie — tasakaalustab quad/hamstring jõudu", sets: 3, repsLow: 10, repsHigh: 12, weightStart: 35, weightStep: 2.5, hasWeight: true },
+      { id: "saared", name: "Säär masinal", note: "Täisamplituud — hoia tipus 1 sek, lase alla aeglaselt", sets: 3, repsLow: 12, repsHigh: 15, weightStart: 20, weightStep: 5, hasWeight: true },
+    ]
+  },
+  {
+    key: "upper", name: "Ülakeha — Kõik ülaosa", sub: "5 harjutust · ~50 min · kordab kõike teise nurgalt",
+    exercises: [
+      { id: "kald_press", name: "Kaldpingil hantlpress (30°)", note: "Rõhk ülarinnale — erinev nurk kui päev 1", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 15, weightStep: 2.5, hasWeight: true },
+      { id: "pullup", name: "Lairiputõmme / assisted pullup", note: "Täisamplituud — kui saad >10, lisa raskusvöö", sets: 3, repsLow: 6, repsHigh: 10, weightStart: 0, weightStep: 2.5, hasWeight: false },
+      { id: "ohp_upper", name: "Seisul õlapress (kangiga / smith)", note: "Kang rinnal, suru otse üles — suurim õlaharjutus", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 10, weightStep: 2.5, hasWeight: true },
+      { id: "bitseps_upper", name: "Bitseps kaldpingil hantliga", note: "Istu 45° kaldpingil — täielik venitus all, max kasv", sets: 3, repsLow: 8, repsHigh: 10, weightStart: 12.5, weightStep: 2.5, hasWeight: true },
+      { id: "triits_upper", name: "Triitseps kaabliga üle pea", note: "Küünarnukid kõrvade kõrval fikseeritud", sets: 3, repsLow: 10, repsHigh: 12, weightStart: 15, weightStep: 2.5, hasWeight: true },
+    ]
+  }
+];
+
+function buildDefaultState() {
+  const s = { week: 1, logs: {}, targets: {} };
+  for (const day of DAYS)
+    for (const ex of day.exercises) {
+      s.targets[ex.id] = { weight: ex.weightStart, reps: ex.repsLow, repsHigh: ex.repsHigh };
+      s.logs[ex.id] = [];
+    }
+  return s;
+}
+
+function calcNext(ex, sets, tgt) {
+  // Use the ACTUAL heaviest weight the user lifted, not the target
+  const actualMaxWeight = ex.hasWeight ? Math.max(...sets.map(s => s.weight)) : 0;
+  const baseWeight = ex.hasWeight ? actualMaxWeight : 0;
+
+  // How many sets hit the top of the rep range
+  const hitTop = sets.filter(s => s.reps >= tgt.repsHigh).length;
+  const majority = hitTop >= ex.sets - 1; // 3/4 or 2/3
+
+  if (ex.hasWeight && ex.weightStep > 0 && majority)
+    // Most sets hit top reps → add weight on top of what was actually lifted
+    return { weight: baseWeight + ex.weightStep, reps: ex.repsLow, repsHigh: ex.repsHigh, change: "weight_up" };
+  if (!ex.hasWeight && majority)
+    return { weight: 0, reps: tgt.reps + 1, repsHigh: tgt.repsHigh + 1, change: "reps_up" };
+  if (hitTop >= 1)
+    // Some sets hit top → keep actual weight, nudge reps up
+    return { weight: baseWeight, reps: Math.min(tgt.reps + 1, tgt.repsHigh), repsHigh: tgt.repsHigh, change: "reps_nudge" };
+  // Nothing hit top → keep actual weight, same reps
+  return { weight: baseWeight, reps: tgt.reps, repsHigh: tgt.repsHigh, change: "same" };
+}
+
+// ── styles ──────────────────────────────────────────────────────────
+const S = {
+  app: { background: "#0d0d0d", minHeight: "100vh", color: "#f0f0f0", fontFamily: "'Inter',sans-serif", fontSize: 14 },
+  header: { background: "#161616", borderBottom: "1px solid #272727", padding: "13px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 },
+  title: { fontFamily: "system-ui", fontWeight: 900, fontSize: 22, letterSpacing: "0.04em", color: "#f0f0f0" },
+  titleSpan: { color: "#e8c547" },
+  weekBadge: { background: "#1c1c1c", border: "1px solid #272727", borderRadius: 8, padding: "5px 12px", fontSize: 13, fontWeight: 600, color: "#777" },
+  resetBtn: { background: "none", border: "1px solid #333", borderRadius: 6, color: "#444", fontSize: 11, padding: "4px 8px", cursor: "pointer", fontFamily: "inherit" },
+  tabs: { display: "flex", background: "#161616", borderBottom: "1px solid #272727", overflowX: "auto", padding: "0 14px", scrollbarWidth: "none" },
+  tab: (active) => ({ padding: "11px 14px", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: active ? "#e8c547" : "#666", cursor: "pointer", borderBottom: active ? "2px solid #e8c547" : "2px solid transparent", whiteSpace: "nowrap", userSelect: "none" }),
+  content: { padding: "14px 14px 40px", maxWidth: 680, margin: "0 auto" },
+  dayIntro: { background: "#1c1c1c", border: "1px solid #272727", borderRadius: 10, padding: "11px 14px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" },
+  progBar: { height: 3, background: "#272727", borderRadius: 2, marginBottom: 14 },
+  progFill: (pct) => ({ height: "100%", background: "linear-gradient(90deg,#e8c547,#4caf6e)", borderRadius: 2, width: pct + "%" }),
+  card: (done, open) => ({ background: "#1c1c1c", border: `1px solid ${open ? "#e8c547" : done ? "#253525" : "#272727"}`, borderRadius: 12, marginBottom: 8, overflow: "hidden" }),
+  cardHeader: { display: "flex", alignItems: "center", padding: "12px 13px", cursor: "pointer", gap: 10 },
+  dot: (done, pr) => ({ width: 26, height: 26, borderRadius: "50%", border: `2px solid ${pr ? "#e8c547" : done ? "#4caf6e" : "#333"}`, background: pr ? "#e8c547" : done ? "#4caf6e" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: pr ? "#000" : "#fff", flexShrink: 0 }),
+  cardBody: { borderTop: "1px solid #272727", padding: 14 },
+  prevRow: (imp) => ({ fontSize: 12, color: "#777", background: "#161616", borderRadius: 6, padding: "7px 10px", marginBottom: 10, borderLeft: `3px solid ${imp ? "#4caf6e" : "#333"}` }),
+  algoBox: { fontSize: 12, color: "#666", background: "#161616", borderRadius: 6, padding: "7px 10px", marginBottom: 10, lineHeight: 1.6 },
+  setsGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 10 },
+  setBox: { background: "#161616", border: "1px solid #272727", borderRadius: 8, padding: "9px 8px" },
+  setLbl: { fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#555", marginBottom: 6, textAlign: "center" },
+  inputRow: { display: "flex", alignItems: "center", gap: 4, marginBottom: 4 },
+  inputLbl: { fontSize: 10, color: "#555", width: 20 },
+  input: { flex: 1, background: "#1c1c1c", border: "1px solid #333", borderRadius: 5, color: "#f0f0f0", fontFamily: "inherit", fontSize: 15, fontWeight: 700, padding: "4px 6px", textAlign: "center", outline: "none", width: "100%" },
+  logBtn: { width: "100%", padding: 10, background: "#e8c547", color: "#000", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  nextBox: { marginTop: 10, background: "#161616", border: "1px solid #272727", borderRadius: 8, overflow: "hidden" },
+  nextHeader: { padding: "7px 12px", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#555", borderBottom: "1px solid #272727", display: "flex", alignItems: "center", gap: 6 },
+  nextDot: { width: 6, height: 6, borderRadius: "50%", background: "#e8c547", display: "inline-block" },
+  nextRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid #272727", fontSize: 13 },
+  nextLbl: { color: "#666", fontSize: 12 },
+  pill: (type) => ({ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: 8, background: type === "up" ? "#1a3a25" : type === "nudge" ? "#2a2a1a" : "#222", color: type === "up" ? "#4caf6e" : type === "nudge" ? "#e8c547" : "#555" }),
+  statRow: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 14 },
+  statBox: { background: "#1c1c1c", border: "1px solid #272727", borderRadius: 10, padding: 12, textAlign: "center" },
+  statNum: { fontWeight: 900, fontSize: 32, color: "#e8c547", lineHeight: 1 },
+  statLbl: { fontSize: 11, color: "#666", marginTop: 3 },
+  nwBlock: { background: "#1c1c1c", border: "1px solid #272727", borderRadius: 10, marginBottom: 10, overflow: "hidden" },
+  nwHead: { padding: "9px 13px", background: "#161616", fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#555", borderBottom: "1px solid #272727" },
+  nwRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 13px", borderBottom: "1px solid #1a1a1a", fontSize: 13 },
+  nextWeekBtn: { width: "100%", padding: 13, background: "#4caf6e", color: "#000", border: "none", borderRadius: 10, fontFamily: "inherit", fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 14 },
+  emptyState: { textAlign: "center", padding: "40px 20px", color: "#555", fontSize: 13, lineHeight: 1.8 },
+  toast: (show) => ({ position: "fixed", bottom: 20, left: "50%", transform: `translateX(-50%) translateY(${show ? 0 : 70}px)`, background: "#1c1c1c", border: "1px solid #333", color: "#f0f0f0", fontWeight: 600, fontSize: 13, padding: "10px 20px", borderRadius: 30, zIndex: 999, transition: "transform 0.3s ease", pointerEvents: "none", whiteSpace: "nowrap" }),
+  loading: { position: "fixed", inset: 0, background: "#0d0d0d", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 9999, gap: 14 },
+};
+
+function App() {
+  const [state, setState] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [openCard, setOpenCard] = useState(null);
+  const [setInputs, setSetInputs] = useState({});
+  const [toast, setToast] = useState({ show: false, msg: "" });
+  const [saving, setSaving] = useState(false);
+
+  // Load from localStorage (persists within same browser tab session)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("gymlog");
+      if (raw) setState(JSON.parse(raw));
+      else setState(buildDefaultState());
+    } catch {
+      setState(buildDefaultState());
+    }
+  }, []);
+
+  const save = useCallback((newState) => {
+    try { localStorage.setItem("gymlog", JSON.stringify(newState)); } catch {}
+  }, []);
+
+  const exportData = (newState) => {
+    const s = newState || state;
+    const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `gymlog-nadal${s.week}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importData = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const s = JSON.parse(ev.target.result);
+        setState(s);
+        save(s);
+        showToast("✓ Andmed laetud!");
+      } catch { showToast("Viga faili laadimisel"); }
+    };
+    reader.readAsText(file);
+  };
+
+  const showToast = (msg) => {
+    setToast({ show: true, msg });
+    setTimeout(() => setToast({ show: false, msg: "" }), 3000);
+  };
+
+  const getInputKey = (exId, setIdx, field) => `${exId}_${setIdx}_${field}`;
+
+  const getInputVal = (exId, setIdx, field, fallback) => {
+    const k = getInputKey(exId, setIdx, field);
+    return setInputs[k] !== undefined ? setInputs[k] : fallback;
+  };
+
+  const handleInput = (exId, setIdx, field, val) => {
+    setSetInputs(prev => ({ ...prev, [getInputKey(exId, setIdx, field)]: val }));
+  };
+
+  const logExercise = async (ex, dayIdx) => {
+    const tgt = state.targets[ex.id];
+    const sets = [];
+    for (let i = 0; i < ex.sets; i++) {
+      sets.push({
+        weight: parseFloat(getInputVal(ex.id, i, "w", tgt.weight)) || 0,
+        reps: parseInt(getInputVal(ex.id, i, "r", tgt.reps)) || tgt.reps,
+      });
+    }
+    const prevLog = state.logs[ex.id]?.slice(-1)[0];
+    const prevMaxW = prevLog && ex.hasWeight ? Math.max(...prevLog.sets.map(s => s.weight)) : -1;
+    const newMaxW = ex.hasWeight ? Math.max(...sets.map(s => s.weight)) : 0;
+    const isPR = ex.hasWeight ? newMaxW > prevMaxW : !prevLog;
+
+    const next = calcNext(ex, sets, tgt);
+
+    const newState = {
+      ...state,
+      targets: { ...state.targets, [ex.id]: next },
+      logs: {
+        ...state.logs,
+        [ex.id]: [...(state.logs[ex.id] || []), { week: state.week, sets, pr: isPR, change: next.change }]
+      }
+    };
+
+    setState(newState);
+    save(newState);
+    setOpenCard(ex.id);
+
+    const msgs = {
+      weight_up: `🔥 Enamik seeriat täis! +${ex.weightStep}kg järgmisel nädalal`,
+      reps_up: `📈 Kordused täis! +1 kordus järgmisel nädalal`,
+      reps_nudge: `✓ Salvestatud — järgmisel nädalal +1 kordus sihtmärk`,
+      same: `✓ Salvestatud — hoia raskus, korri tehnikat`,
+    };
+    showToast(msgs[next.change] || "✓ Salvestatud");
+  };
+
+  const startNextWeek = () => {
+    const newState = { ...state, week: state.week + 1 };
+    setState(newState);
+    save(newState);
+    setActiveTab(0);
+    setOpenCard(null);
+    showToast(`🚀 Nädal ${newState.week} alanud!`);
+  };
+
+  const doReset = () => {
+    if (!confirm("Kustuta kõik andmed ja alusta otsast?")) return;
+    try { localStorage.removeItem("gymlog"); } catch {}
+    setState(buildDefaultState());
+    setOpenCard(null);
+    setSetInputs({});
+  };
+
+  if (!state) return (
+    <div style={S.loading}>
+      <div style={{ width: 36, height: 36, border: "3px solid #222", borderTopColor: "#e8c547", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <p style={{ color: "#555", fontSize: 13 }}>Laen andmeid...</p>
+    </div>
+  );
+
+  const allEx = DAYS.flatMap(d => d.exercises);
+  const totalDone = allEx.filter(ex => state.logs[ex.id]?.slice(-1)[0]?.week === state.week).length;
+  const totalPR = allEx.filter(ex => state.logs[ex.id]?.slice(-1)[0]?.pr && state.logs[ex.id]?.slice(-1)[0]?.week === state.week).length;
+  const totalUp = allEx.filter(ex => { const l = state.logs[ex.id]?.slice(-1)[0]; return l?.week === state.week && (l.change === "weight_up" || l.change === "reps_up"); }).length;
+
+  return (
+    <div style={S.app}>
+      {/* HEADER */}
+      <div style={S.header}>
+        <div style={S.title}>GYM<span style={S.titleSpan}>LOG</span></div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={S.weekBadge}>Nädal <strong style={{ color: "#e8c547" }}>{state.week}</strong></div>
+          <label style={{...S.resetBtn, cursor:"pointer"}} title="Lae andmed">
+            📂
+            <input type="file" accept=".json" style={{display:"none"}} onChange={importData} />
+          </label>
+          <button style={{...S.resetBtn, color:"#4caf6e", borderColor:"#2a4a35"}} onClick={() => exportData()} title="Salvesta andmed">💾</button>
+          <button style={S.resetBtn} onClick={doReset}>↺</button>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div style={S.tabs}>
+        {["Push", "Pull", "Jalad", "Ülakeha", "Järgmine →"].map((t, i) => {
+          const day = DAYS[i];
+          const done = day && day.exercises.every(ex => state.logs[ex.id]?.slice(-1)[0]?.week === state.week);
+          return (
+            <div key={i} style={S.tab(activeTab === i)} onClick={() => setActiveTab(i)}>
+              {t}{done ? " ✓" : ""}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={S.content}>
+        {/* DAY TABS */}
+        {activeTab < 4 && (() => {
+          const day = DAYS[activeTab];
+          const doneCnt = day.exercises.filter(ex => state.logs[ex.id]?.slice(-1)[0]?.week === state.week).length;
+          const pct = (doneCnt / day.exercises.length) * 100;
+          return (
+            <>
+              <div style={S.dayIntro}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{day.name}</div>
+                  <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{day.sub}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 900, fontSize: 28, color: "#e8c547", lineHeight: 1 }}>{doneCnt}/{day.exercises.length}</div>
+                  <div style={{ fontSize: 11, color: "#555" }}>tehtud</div>
+                </div>
+              </div>
+              <div style={S.progBar}><div style={S.progFill(pct)} /></div>
+              {day.exercises.map(ex => <ExCard key={ex.id} ex={ex} state={state} open={openCard === ex.id} onToggle={() => setOpenCard(openCard === ex.id ? null : ex.id)} getInputVal={getInputVal} handleInput={handleInput} onLog={() => logExercise(ex, activeTab)} />)}
+            </>
+          );
+        })()}
+
+        {/* NEXT WEEK TAB */}
+        {activeTab === 4 && (
+          <>
+            <div style={S.statRow}>
+              <div style={S.statBox}><div style={S.statNum}>{totalPR}</div><div style={S.statLbl}>PR sel nädalal</div></div>
+              <div style={S.statBox}><div style={S.statNum}>{totalDone}/{allEx.length}</div><div style={S.statLbl}>Tehtud</div></div>
+              <div style={S.statBox}><div style={S.statNum}>{totalUp}</div><div style={S.statLbl}>Raskus tõuseb</div></div>
+            </div>
+            {totalDone === 0 ? (
+              <div style={S.emptyState}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>📊</div>
+                Märgi treeningud tehtuks — siis arvutan järgmise nädala sihtmärgid automaatselt.
+              </div>
+            ) : (
+              DAYS.map(day => {
+                const rows = day.exercises.filter(ex => state.logs[ex.id]?.slice(-1)[0]?.week === state.week);
+                if (!rows.length) return null;
+                return (
+                  <div key={day.key} style={S.nwBlock}>
+                    <div style={S.nwHead}>{day.name}</div>
+                    {rows.map(ex => {
+                      const log = state.logs[ex.id]?.slice(-1)[0];
+                      const tgt = state.targets[ex.id];
+                      const isUp = log.change === "weight_up" || log.change === "reps_up" || log.change === "reps_nudge";
+                      const valText = ex.hasWeight ? `${tgt.weight}kg × ${tgt.reps}–${tgt.repsHigh} kordi` : `${tgt.reps}–${tgt.repsHigh} kordi`;
+                      const pillType = log.change === "weight_up" || log.change === "reps_up" ? "up" : log.change === "reps_nudge" ? "nudge" : "same";
+                      const pillText = log.change === "weight_up" ? `+${ex.weightStep}kg` : log.change === "reps_up" ? "+1 kordus" : log.change === "reps_nudge" ? "+1 kordus sihtmärk" : "sama";
+                      return (
+                        <div key={ex.id} style={S.nwRow}>
+                          <span style={{ color: "#666", fontSize: 12, flex: 1, paddingRight: 8 }}>{ex.name}</span>
+                          <span style={{ fontWeight: 700, color: isUp ? "#4caf6e" : "#555", whiteSpace: "nowrap" }}>
+                            {isUp ? "↑ " : "→ "}{valText}
+                            <span style={S.pill(pillType)}>{pillText}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            )}
+            {totalDone === allEx.length && (
+              <button style={S.nextWeekBtn} onClick={startNextWeek}>
+                🚀 Nädal {state.week} läbi — Alusta nädal {state.week + 1}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      <div style={S.toast(toast.show)}>{toast.msg}</div>
+    </div>
+  );
+}
+
+function ExCard({ ex, state, open, onToggle, getInputVal, handleInput, onLog }) {
+  const tgt = state.targets[ex.id];
+  const lastLog = state.logs[ex.id]?.slice(-1)[0];
+  const isDone = lastLog && lastLog.week === state.week;
+  const isPR = isDone && lastLog.pr;
+
+  const targetText = ex.hasWeight ? `${tgt.weight}kg · ${tgt.reps}–${tgt.repsHigh}k` : `${tgt.reps}–${tgt.repsHigh} kordi`;
+
+  let prevText = "Esimene kord — alusta sihtraskusega";
+  if (lastLog) {
+    prevText = ex.hasWeight
+      ? `Eelmine (nädal ${lastLog.week}): ${lastLog.sets.map(s => `${s.weight}kg×${s.reps}`).join(" · ")}`
+      : `Eelmine (nädal ${lastLog.week}): ${lastLog.sets.map(s => `${s.reps}k`).join(" · ")}`;
+  }
+
+  const needed = ex.sets - 1;
+  const algoText = ex.hasWeight
+    ? `${needed}+ seeriat saavad ${tgt.repsHigh} kordust → +${ex.weightStep}kg järgmisel nädalal. 1–2 seeriat → +1 kordus sihtmärk. Ükski → sama raskus.`
+    : `Enamik seeriat saab ${tgt.repsHigh} kordust → +1 kordus järgmisel nädalal.`;
+
+  // Next week prediction
+  const nextPred = (() => {
+    if (!isDone) return null;
+    const change = lastLog.change;
+    const valText = ex.hasWeight ? `${tgt.weight}kg × ${tgt.reps}–${tgt.repsHigh} kordi` : `${tgt.reps}–${tgt.repsHigh} kordi`;
+    const pillType = change === "weight_up" || change === "reps_up" ? "up" : change === "reps_nudge" ? "nudge" : "same";
+    const pillText = change === "weight_up" ? `+${ex.weightStep}kg` : change === "reps_up" ? "+1 kordus" : change === "reps_nudge" ? "+1 kordus sihtmärk" : "sama — korri tehnikat";
+    const arrow = change === "same" ? "→" : "↑";
+    return { valText, pillType, pillText, arrow };
+  })();
+
+  return (
+    <div style={S.card(isDone, open)}>
+      <div style={S.cardHeader} onClick={onToggle}>
+        <div style={S.dot(isDone, isPR)}>{isPR ? "★" : isDone ? "✓" : ""}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ex.name}</div>
+          <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>{ex.sets} seeriat · {ex.note.replace("🍑 ", "")}</div>
+        </div>
+        <div style={{ background: "#161616", border: "1px solid #272727", borderRadius: 6, padding: "4px 9px", fontSize: 12, fontWeight: 700, color: "#e8c547", whiteSpace: "nowrap", flexShrink: 0 }}>{targetText}</div>
+      </div>
+
+      {open && (
+        <div style={S.cardBody}>
+          <div style={S.prevRow(isPR)}>{prevText}</div>
+          <div style={S.algoBox}>{algoText}</div>
+          <div style={S.setsGrid}>
+            {Array.from({ length: ex.sets }, (_, i) => {
+              const dw = isDone ? (lastLog.sets[i]?.weight ?? tgt.weight) : tgt.weight;
+              const dr = isDone ? (lastLog.sets[i]?.reps ?? tgt.reps) : tgt.reps;
+              return (
+                <div key={i} style={S.setBox}>
+                  <div style={S.setLbl}>Seeria {i + 1}</div>
+                  {ex.hasWeight && (
+                    <div style={S.inputRow}>
+                      <label style={S.inputLbl}>kg</label>
+                      <input
+                        style={S.input}
+                        type="number"
+                        inputMode="decimal"
+                        key={`${ex.id}-${i}-w-${state.week}-${isDone}`}
+                        defaultValue={dw}
+                        step={ex.weightStep}
+                        min={0}
+                        onFocus={e => e.target.select()}
+                        onChange={e => handleInput(ex.id, i, "w", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  <div style={S.inputRow}>
+                    <label style={S.inputLbl}>×</label>
+                    <input
+                      style={S.input}
+                      type="number"
+                      inputMode="numeric"
+                      key={`${ex.id}-${i}-r-${state.week}-${isDone}`}
+                      defaultValue={dr}
+                      step={1}
+                      min={1}
+                      max={50}
+                      onFocus={e => e.target.select()}
+                      onChange={e => handleInput(ex.id, i, "r", e.target.value)}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {!isDone && <button style={S.logBtn} onClick={onLog}>✓ Märgi tehtuks</button>}
+
+          {/* NEXT WEEK PREDICTION */}
+          {nextPred && (
+            <div style={S.nextBox}>
+              <div style={S.nextHeader}><span style={S.nextDot} /> Järgmine nädal</div>
+              <div style={S.nextRow}>
+                <span style={S.nextLbl}>Sihtraskus & kordused</span>
+                <span style={{ fontWeight: 700, color: nextPred.pillType === "same" ? "#555" : "#4caf6e" }}>
+                  {nextPred.arrow} {nextPred.valText}
+                  <span style={S.pill(nextPred.pillType)}>{nextPred.pillText}</span>
+                </span>
+              </div>
+              <div style={{ ...S.nextRow, borderBottom: "none" }}>
+                <span style={S.nextLbl}>Seeriad</span>
+                <span style={{ fontWeight: 700, color: "#555" }}>{ex.sets} seeriat</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
