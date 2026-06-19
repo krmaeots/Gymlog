@@ -1,9 +1,9 @@
 import { useState, type CSSProperties } from 'react'
 import { ExerciseCard } from '../components/ExerciseCard'
 import { Pill } from '../components/Pill'
-import type { Day } from '../domain/types'
+import type { Day, Exercise } from '../domain/types'
 import { sessionVolume } from '../domain/overload'
-import { allExercises } from '../lib/program'
+import { allExercises, effectiveWeek } from '../lib/program'
 import { fmtWeight, targetText } from '../lib/format'
 import { useGymStore } from '../store/useGymStore'
 import { useToast } from '../store/useToast'
@@ -17,6 +17,23 @@ const CHANGE_PILL: Record<string, string> = {
   deload: 'deload',
 }
 
+/**
+ * Group consecutive exercises that share a `supersetGroup` id into one block,
+ * so a superset renders under a single bracket. Others stay singletons.
+ */
+function groupExercises(exercises: Exercise[]): Exercise[][] {
+  const groups: Exercise[][] = []
+  for (const ex of exercises) {
+    const prev = groups.at(-1)
+    if (ex.supersetGroup && prev && prev[0]!.supersetGroup === ex.supersetGroup) {
+      prev.push(ex)
+    } else {
+      groups.push([ex])
+    }
+  }
+  return groups
+}
+
 export function WorkoutView() {
   const program = useGymStore((s) => s.program)
   const week = useGymStore((s) => s.week)
@@ -26,13 +43,15 @@ export function WorkoutView() {
 
   const days = program.days
   const summaryTab = days.length // index of the "next week" tab
-  const isLoggedThisWeek = (exId: string) => logs[exId]?.at(-1)?.week === week
 
   return (
     <>
       <div style={S.tabs}>
         {days.map((day, i) => {
-          const done = day.exercises.length > 0 && day.exercises.every((ex) => isLoggedThisWeek(ex.id))
+          const dayWk = effectiveWeek(day, week)
+          const done =
+            day.exercises.length > 0 &&
+            day.exercises.every((ex) => logs[ex.id]?.at(-1)?.week === dayWk)
           return (
             <div key={day.key} style={S.tab(tab === i)} onClick={() => setTab(i)}>
               {shortLabel(day.name)}
@@ -73,11 +92,13 @@ function DayView({
   setOpenCard: (id: string | null) => void
 }) {
   const day = useGymStore((s) => s.program.days.find((d) => d.key === dayKey))
-  const week = useGymStore((s) => s.week)
+  const globalWeek = useGymStore((s) => s.week)
   const logs = useGymStore((s) => s.logs)
   if (!day) return null
 
-  const doneCnt = day.exercises.filter((ex) => logs[ex.id]?.at(-1)?.week === week).length
+  const dayWk = effectiveWeek(day, globalWeek)
+  const isDone = (exId: string) => logs[exId]?.at(-1)?.week === dayWk
+  const doneCnt = day.exercises.filter((ex) => isDone(ex.id)).length
   const pct = day.exercises.length ? (doneCnt / day.exercises.length) * 100 : 0
   const allDone = day.exercises.length > 0 && doneCnt === day.exercises.length
 
@@ -90,7 +111,7 @@ function DayView({
     const start = order.findIndex((e) => e.id === savedId)
     for (let k = 1; k <= order.length; k++) {
       const ex = order[(start + k) % order.length]!
-      if (ex.id !== savedId && freshLogs[ex.id]?.at(-1)?.week !== week) {
+      if (ex.id !== savedId && freshLogs[ex.id]?.at(-1)?.week !== dayWk) {
         setOpenCard(ex.id)
         return
       }
@@ -101,11 +122,14 @@ function DayView({
 
   return (
     <>
-      {allDone && <DaySummary day={day} />}
+      {allDone && <DaySummary day={day} dayWk={dayWk} />}
       <div style={S.dayIntro}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 17 }}>{day.name}</div>
-          <div style={{ fontSize: 13, color: colors.faint, marginTop: 3 }}>{day.sub}</div>
+          <div style={{ fontSize: 13, color: colors.faint, marginTop: 3 }}>
+            {day.sub}
+            {day.cycle !== undefined ? ` · nädal ${dayWk}` : ''}
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontWeight: 900, fontSize: 30, color: colors.accent, lineHeight: 1 }}>
@@ -117,15 +141,25 @@ function DayView({
       <div style={S.progBar}>
         <div style={{ height: '100%', background: `linear-gradient(90deg,${colors.accent},${colors.green})`, borderRadius: 2, width: `${pct}%` }} />
       </div>
-      {day.exercises.map((ex) => (
-        <ExerciseCard
-          key={`${ex.id}-${week}`}
-          exercise={ex}
-          open={openCard === ex.id}
-          onToggle={() => onToggle(ex.id)}
-          onSaved={() => advance(ex.id)}
-        />
-      ))}
+      {groupExercises(day.exercises).map((group) => {
+        const cards = group.map((ex) => (
+          <ExerciseCard
+            key={`${ex.id}-${dayWk}`}
+            exercise={ex}
+            week={dayWk}
+            open={openCard === ex.id}
+            onToggle={() => onToggle(ex.id)}
+            onSaved={() => advance(ex.id)}
+          />
+        ))
+        if (group.length < 2) return cards
+        return (
+          <div key={`ss-${group[0]!.id}`} style={S.supersetWrap}>
+            <div style={S.supersetLabel}>🔗 Superseeria — tee vaheldumisi</div>
+            {cards}
+          </div>
+        )
+      })}
       {day.exercises.length === 0 && (
         <div style={S.empty}>Selles päevas pole harjutusi. Lisa neid „Kava“ vahelehel.</div>
       )}
@@ -150,13 +184,14 @@ function funComparison(kg: number): string | null {
   return `≈ ${Math.floor(kg / best.kg)}× ${best.label} raskus 🐘`
 }
 
-function DaySummary({ day }: { day: Day }) {
-  const week = useGymStore((s) => s.week)
+function DaySummary({ day, dayWk }: { day: Day; dayWk: number }) {
   const logs = useGymStore((s) => s.logs)
+  const startNextDayCycle = useGymStore((s) => s.startNextDayCycle)
+  const showToast = useToast((s) => s.show)
 
   const entries = day.exercises
     .map((ex) => logs[ex.id]?.at(-1))
-    .filter((log): log is NonNullable<typeof log> => !!log && log.week === week)
+    .filter((log): log is NonNullable<typeof log> => !!log && log.week === dayWk)
 
   const tonnage = entries.reduce((sum, log) => sum + sessionVolume(log.sets), 0)
   const totalSets = entries.reduce((n, log) => n + log.sets.length, 0)
@@ -164,6 +199,12 @@ function DaySummary({ day }: { day: Day }) {
   const prs = entries.filter((log) => log.pr).length
   const progressed = entries.filter((log) => log.change === 'weight_up' || log.change === 'reps_up').length
   const comparison = funComparison(tonnage)
+
+  const startNext = () => {
+    startNextDayCycle(day.key)
+    showToast(`🚀 „${shortLabel(day.name)}“ — nädal ${dayWk + 1} algab`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <div style={S.summary}>
@@ -184,6 +225,9 @@ function DaySummary({ day }: { day: Day }) {
         <SummaryStat num={prs} label="rekordit ★" />
         <SummaryStat num={progressed} label="läheb raskemaks" />
       </div>
+      <button style={S.dayNextBtn} onClick={startNext}>
+        ➜ Alusta selle päeva nädal {dayWk + 1}
+      </button>
     </div>
   )
 }
@@ -211,16 +255,20 @@ function NextWeekSummary({
   const startNextWeek = useGymStore((s) => s.startNextWeek)
   const showToast = useToast((s) => s.show)
 
+  // A day's exercise is "done" when its last log is in that day's effective week.
+  const dayOf = (exId: string) => program.days.find((d) => d.exercises.some((e) => e.id === exId))
+  const loggedThisWeek = (exId: string) => {
+    const d = dayOf(exId)
+    return !!d && logs[exId]?.at(-1)?.week === effectiveWeek(d, week)
+  }
+
   const all = allExercises(program)
-  const loggedThisWeek = (exId: string) => logs[exId]?.at(-1)?.week === week
   const totalDone = all.filter((ex) => loggedThisWeek(ex.id)).length
-  const totalPR = all.filter((ex) => {
-    const l = logs[ex.id]?.at(-1)
-    return l?.week === week && l.pr
-  }).length
+  const totalPR = all.filter((ex) => loggedThisWeek(ex.id) && logs[ex.id]!.at(-1)!.pr).length
   const totalUp = all.filter((ex) => {
-    const l = logs[ex.id]?.at(-1)
-    return l?.week === week && (l.change === 'weight_up' || l.change === 'reps_up')
+    if (!loggedThisWeek(ex.id)) return false
+    const c = logs[ex.id]!.at(-1)!.change
+    return c === 'weight_up' || c === 'reps_up'
   }).length
 
   const handleNextWeek = () => {
@@ -233,7 +281,7 @@ function NextWeekSummary({
   return (
     <>
       <div style={S.statRow}>
-        <Stat num={totalPR} label="PR sel nädalal" />
+        <Stat num={totalPR} label="PR" />
         <Stat num={`${totalDone}/${all.length}`} label="Tehtud" />
         <Stat num={totalUp} label="Progress" />
       </div>
@@ -241,7 +289,7 @@ function NextWeekSummary({
       {totalDone === 0 ? (
         <div style={S.empty}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📊</div>
-          Märgi treeningud tehtuks — siis arvutan järgmise nädala sihtmärgid automaatselt.
+          Märgi treeningud tehtuks — siis arvutan järgmised sihtmärgid automaatselt.
         </div>
       ) : (
         program.days.map((day) => {
@@ -249,7 +297,10 @@ function NextWeekSummary({
           if (!rows.length) return null
           return (
             <div key={day.key} style={S.nwBlock}>
-              <div style={S.nwHead}>{day.name}</div>
+              <div style={S.nwHead}>
+                {day.name}
+                {day.cycle !== undefined ? ` · nädal ${effectiveWeek(day, week)}` : ''}
+              </div>
               {rows.map((ex) => {
                 const log = logs[ex.id]!.at(-1)!
                 const tgt = targets[ex.id]!
@@ -327,8 +378,11 @@ const S = {
     textAlign: 'center',
   } as CSSProperties,
   summaryStats: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, width: '100%', marginTop: 12 } as CSSProperties,
+  dayNextBtn: { marginTop: 14, width: '100%', padding: 13, background: colors.green, color: '#000', border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
   dayIntro: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: '11px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' } as CSSProperties,
   progBar: { height: 3, background: colors.border, borderRadius: 2, marginBottom: 14 } as CSSProperties,
+  supersetWrap: { border: `1px solid #3a3320`, borderLeft: `3px solid ${colors.accent}`, borderRadius: 10, padding: '8px 8px 2px', marginBottom: 8, background: 'rgba(232,197,71,0.03)' } as CSSProperties,
+  supersetLabel: { fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: colors.accent, padding: '2px 4px 8px' } as CSSProperties,
   statRow: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 } as CSSProperties,
   statBox: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 12, textAlign: 'center' } as CSSProperties,
   nwBlock: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, marginBottom: 10, overflow: 'hidden' } as CSSProperties,

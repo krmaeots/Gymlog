@@ -21,7 +21,7 @@ import type {
  * never crash or silently corrupt the running app.
  */
 export const STORAGE_KEY = 'gymlog'
-export const CURRENT_SCHEMA_VERSION = 3
+export const CURRENT_SCHEMA_VERSION = 4
 
 const VALID_CHANGES = new Set<ChangeType>(['weight_up', 'reps_up', 'reps_nudge', 'same', 'deload'])
 
@@ -143,6 +143,15 @@ function isValidExercise(e: unknown): e is Exercise {
     // Optional fixed-rep prescription: absent, or an array of finite numbers.
     (e.repScheme === undefined ||
       (Array.isArray(e.repScheme) && e.repScheme.every(isFiniteNum))) &&
+    // Optional per-set weight scheme: absent, or an array of finite numbers.
+    (e.weightScheme === undefined ||
+      (Array.isArray(e.weightScheme) && e.weightScheme.every(isFiniteNum))) &&
+    // Optional superset link: absent or a string.
+    (e.supersetGroup === undefined || typeof e.supersetGroup === 'string') &&
+    // Optional forward weight plan: absent, or [{week,weight}] of finite numbers.
+    (e.weekPlan === undefined ||
+      (Array.isArray(e.weekPlan) &&
+        e.weekPlan.every((p) => isObj(p) && isFiniteNum(p.week) && isFiniteNum(p.weight)))) &&
     // Optional machine/station label: absent or a string.
     (e.machine === undefined || typeof e.machine === 'string')
   )
@@ -154,7 +163,9 @@ function isValidDay(d: unknown): d is Day {
     typeof d.key === 'string' &&
     typeof d.name === 'string' &&
     Array.isArray(d.exercises) &&
-    d.exercises.every(isValidExercise)
+    d.exercises.every(isValidExercise) &&
+    // Optional per-day cycle counter: absent or a finite number.
+    (d.cycle === undefined || isFiniteNum(d.cycle))
   )
 }
 

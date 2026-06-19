@@ -155,6 +155,18 @@ function SettingsPanel() {
           }
         />
       </div>
+      <div style={S.field}>
+        <label style={S.label}>Plaaniline deload iga N nädala tagant (0 = väljas)</label>
+        <input
+          style={S.input}
+          type="number"
+          min={0}
+          step={1}
+          value={settings.deloadEveryWeeks ?? 0}
+          onChange={(e) => updateSettings({ deloadEveryWeeks: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+        />
+        <div style={S.hint}>Treeneri kava puhul nt 6 — iga 6. nädal on kerge nädal ülaltoodud vähendusega.</div>
+      </div>
     </div>
   )
 }
@@ -241,6 +253,15 @@ function ExerciseEditor({
     />
   )
 
+  // Write one entry of a per-set array (repScheme / weightScheme), normalising
+  // its length to the current set count so it always matches.
+  const setSchemeAt = (field: 'repScheme' | 'weightScheme', i: number, value: number) => {
+    const fallback = field === 'repScheme' ? ex.repsHigh : ex.weightStart
+    const cur = ex[field]
+    const arr = Array.from({ length: ex.sets }, (_, k) => (k === i ? value : (cur?.[k] ?? fallback)))
+    update(dayKey, ex.id, { [field]: arr } as Partial<Exercise>)
+  }
+
   return (
     <div style={S.exBlock}>
       <div style={S.exHead}>
@@ -288,6 +309,17 @@ function ExerciseEditor({
               onChange={(e) => update(dayKey, ex.id, { machine: e.target.value.trim() ? e.target.value : undefined })}
             />
           </div>
+          <div style={S.field}>
+            <label style={S.label}>Superseeria grupp (sama silt = tehakse koos)</label>
+            <input
+              style={S.input}
+              value={ex.supersetGroup ?? ''}
+              placeholder="nt A — jäta tühjaks kui pole superseeria"
+              onChange={(e) =>
+                update(dayKey, ex.id, { supersetGroup: e.target.value.trim() ? e.target.value.trim() : undefined })
+              }
+            />
+          </div>
           <div style={S.grid}>
             <Labeled label="Seeriad">{num('sets', { min: 1 })}</Labeled>
             <Labeled label="Kordusi (min)">{num('repsLow', { min: 1 })}</Labeled>
@@ -305,6 +337,63 @@ function ExerciseEditor({
               </label>
             </Labeled>
           </div>
+
+          {/* Fixed-rep (coach-prescribed) mode: pin reps per set, only weight progresses. */}
+          <div style={S.field}>
+            <label style={S.checkRow}>
+              <input
+                type="checkbox"
+                checked={!!ex.repScheme}
+                onChange={(e) =>
+                  update(
+                    dayKey,
+                    ex.id,
+                    e.target.checked
+                      ? { repScheme: Array.from({ length: ex.sets }, (_, i) => ex.repScheme?.[i] ?? ex.repsHigh) }
+                      : { repScheme: undefined, weightScheme: undefined, weekPlan: undefined },
+                  )
+                }
+              />
+              <span style={{ fontSize: 13, color: colors.muted }}>
+                Fikseeritud kordused (treeneri kava — ainult raskus progresseerub)
+              </span>
+            </label>
+          </div>
+          {ex.repScheme && (
+            <div style={S.field}>
+              <label style={S.label}>Kordused {ex.hasWeight ? '& raskus ' : ''}seeriate kaupa</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {Array.from({ length: ex.sets }, (_, i) => (
+                  <div key={i} style={{ width: 64 }}>
+                    <div style={{ fontSize: 10, color: colors.faint, textAlign: 'center', marginBottom: 3 }}>
+                      Seeria {i + 1}
+                    </div>
+                    <input
+                      style={S.numInput}
+                      type="number"
+                      min={1}
+                      value={ex.repScheme?.[i] ?? ex.repsHigh}
+                      onChange={(e) => setSchemeAt('repScheme', i, parseInt(e.target.value, 10) || 0)}
+                    />
+                    {ex.hasWeight && (
+                      <input
+                        style={{ ...S.numInput, marginTop: 4, fontSize: 15 }}
+                        type="number"
+                        min={0}
+                        step={2.5}
+                        value={ex.weightScheme?.[i] ?? ex.weightStart}
+                        onChange={(e) => setSchemeAt('weightScheme', i, parseFloat(e.target.value) || 0)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div style={S.hint}>
+                {ex.hasWeight ? 'Ülemine rida = kordused, alumine = raskus (kg). ' : ''}Raskus tõuseb automaatselt, kui
+                ettenähtud kordused saavad täis.
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -329,6 +418,7 @@ const S = {
   dayNameInput: { flex: 1, background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 8, color: colors.text, fontSize: 15, fontWeight: 700, padding: '8px 10px', outline: 'none' } as CSSProperties,
   field: { marginTop: 10 } as CSSProperties,
   label: { fontSize: 13, color: colors.muted, display: 'block', marginBottom: 4 } as CSSProperties,
+  hint: { fontSize: 11, color: colors.faint, marginTop: 6, lineHeight: 1.5 } as CSSProperties,
   input: { width: '100%', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 8, color: colors.text, fontSize: 16, padding: '10px 12px', outline: 'none' } as CSSProperties,
   numInput: { width: '100%', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 8, color: colors.text, fontSize: 17, fontWeight: 700, padding: '10px', outline: 'none', textAlign: 'center' } as CSSProperties,
   grid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 10 } as CSSProperties,

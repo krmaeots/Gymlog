@@ -33,6 +33,28 @@ export interface Exercise {
    */
   repScheme?: number[]
   /**
+   * Fixed-rep mode only: per-set prescribed weights, e.g. a descending pyramid
+   * `[45,45,40,40]`. Treated as **offsets from the single advancing working
+   * weight** — the engine still progresses one weight (the top set), and each
+   * set is shown as `working + (weightScheme[i] − max(weightScheme))`. This lets
+   * a back-off/pyramid plan display correct per-set weights without per-set
+   * progression. Undefined → every set uses the one target weight.
+   */
+  weightScheme?: number[]
+  /**
+   * Optional superset link: exercises in the same {@link Day} sharing this id
+   * are performed back-to-back and rendered under one bracket. Purely
+   * presentational — each exercise is still logged and progressed on its own.
+   */
+  supersetGroup?: string
+  /**
+   * Fixed-rep mode only: a coach's explicit forward weight plan, consulted at
+   * prescription time — if an entry matches the day's current week, that weight
+   * is shown instead of the engine's computed progression. Lets a coach pin
+   * specific weeks (e.g. a planned overreach). Undefined → engine computes.
+   */
+  weekPlan?: { week: number; weight: number }[]
+  /**
    * Optional gym machine/station number(s), shown to the user so they know which
    * machine to use — e.g. "76" or "49 / 50". Free text, not required; omit for
    * free-weight or bodyweight exercises that have no fixed station.
@@ -47,6 +69,14 @@ export interface Day {
   /** Sub-heading, e.g. "4 exercises · ~45 min". */
   sub: string
   exercises: Exercise[]
+  /**
+   * Optional per-day training-week counter, for split routines trained on a
+   * rolling schedule where days advance independently. When set it overrides
+   * the program-wide {@link GymState.week} for this day (see `effectiveWeek`);
+   * when absent the day follows the global week — so single-track programs are
+   * unaffected.
+   */
+  cycle?: number
 }
 
 /** A full training program: an ordered list of days. */

@@ -14,10 +14,11 @@ export interface LogUpdate {
 /**
  * Compute the log + next target after a session is recorded.
  *
- * If the latest entry is already for the current week this is treated as an
- * **edit**: that entry is replaced (not appended) and progression is recomputed
- * from the prescription that session was performed against — so correcting a
- * mistyped set yields the right next-week target instead of compounding.
+ * If the latest entry is for the current week AND the same calendar day this is
+ * treated as an **edit**: that entry is replaced (not appended) and progression
+ * is recomputed from the prescription that session was performed against — so
+ * correcting a mistyped set yields the right next-week target instead of
+ * compounding. A session on a different day always appends (no overwrite).
  */
 export function buildLogUpdate(args: {
   exercise: Exercise
@@ -34,7 +35,13 @@ export function buildLogUpdate(args: {
   const { exercise, sets, currentTarget, history, week, settings, date } = args
 
   const last = history.at(-1)
-  const isEdit = last?.week === week
+  // An edit is re-logging the SAME session: same week AND same calendar day.
+  // On a rolling multi-day split the week counter may not have advanced between
+  // a day's sessions, so the same-day check stops a later session from silently
+  // overwriting an earlier one — it appends a new entry instead.
+  const day = date.slice(0, 10)
+  const sameDay = day !== '' && last?.date.slice(0, 10) === day
+  const isEdit = last?.week === week && sameDay
 
   // The prescription this session was (or should be) judged against: for an
   // edit, the target recorded on the original entry; otherwise the live target.

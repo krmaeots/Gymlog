@@ -17,6 +17,15 @@ export function allExercises(program: Program): Exercise[] {
   return program.days.flatMap((d) => d.exercises)
 }
 
+/**
+ * The training week in effect for a day: its own `cycle` if set (rolling split
+ * trained day-by-day), otherwise the program-wide week. Single-track programs
+ * never set `cycle`, so this is just the global week for them.
+ */
+export function effectiveWeek(day: Pick<Day, 'cycle'>, globalWeek: number): number {
+  return day.cycle ?? globalWeek
+}
+
 /** Immutably map a single day, matched by key. */
 function mapDay(program: Program, dayKey: string, fn: (day: Day) => Day): Program {
   return { days: program.days.map((d) => (d.key === dayKey ? fn(d) : d)) }

@@ -3,15 +3,17 @@ import { buildLogUpdate } from '../domain/logging'
 import type { Day, Exercise, GymState, SetEntry, Settings } from '../domain/types'
 import { coerceState, loadState, reconcileEntries, saveState, seedState } from '../lib/storage'
 import * as P from '../lib/program'
-import { findExercise } from '../lib/program'
+import { findExercise, effectiveWeek } from '../lib/program'
 import { isCloudConfigured } from '../lib/supabase'
 import { useToast } from './useToast'
 
 interface GymActions {
   /** Record a performed exercise; updates its log and next-week target. */
   logExercise: (exerciseId: string, sets: SetEntry[]) => void
-  /** Advance to the next training week. */
+  /** Advance the program-wide training week. */
   startNextWeek: () => void
+  /** Advance one day's own cycle counter (rolling split trained day-by-day). */
+  startNextDayCycle: (dayKey: string) => void
   /** Wipe everything back to a fresh default program. */
   resetAll: () => void
   /** Clear logged progress (logs, targets, week) but keep the program + settings. */
@@ -90,7 +92,7 @@ export const useGymStore = create<GymStore>((set, get) => ({
     const state = get()
     const found = findExercise(state.program, exerciseId)
     if (!found) return
-    const { exercise } = found
+    const { exercise, day } = found
     const currentTarget = state.targets[exerciseId] ?? {
       weight: exercise.weightStart,
       reps: exercise.repsLow,
@@ -102,7 +104,9 @@ export const useGymStore = create<GymStore>((set, get) => ({
       sets,
       currentTarget,
       history: state.logs[exerciseId] ?? [],
-      week: state.week,
+      // Stamp + progress against the day's own week (its cycle if set, else the
+      // global week) so a rolling split's days advance — and deload — independently.
+      week: effectiveWeek(day, state.week),
       settings: state.settings,
       date: new Date().toISOString(),
     })
@@ -115,11 +119,31 @@ export const useGymStore = create<GymStore>((set, get) => ({
 
   startNextWeek: () => set((s) => ({ week: s.week + 1 })),
 
+  // Advance only this day's cycle (initialising it from the global week the
+  // first time). Other days are untouched; days without a cycle keep following
+  // the global week.
+  startNextDayCycle: (dayKey) =>
+    set((s) => {
+      const d = s.program.days.find((x) => x.key === dayKey)
+      if (!d) return {}
+      return { program: P.updateDay(s.program, dayKey, { cycle: (d.cycle ?? s.week) + 1 }) }
+    }),
+
   resetAll: () => set(seedState()),
 
   // Keep the program + settings; drop all logged sets and reseed fresh starting
-  // targets (reconcileEntries rebuilds them from the program) and reset the week.
-  resetProgress: () => set((s) => reconcileEntries({ ...s, week: 1, targets: {}, logs: {} })),
+  // targets (reconcileEntries rebuilds them from the program), reset the week and
+  // any per-day cycle counters back to the start.
+  resetProgress: () =>
+    set((s) =>
+      reconcileEntries({
+        ...s,
+        week: 1,
+        targets: {},
+        logs: {},
+        program: { days: s.program.days.map((d) => ({ ...d, cycle: undefined })) },
+      }),
+    ),
 
   importState: (raw) => set(coerceState(raw)),
 

@@ -113,6 +113,38 @@ function baseProgression(exercise: Exercise, sets: SetEntry[], target: Target): 
 }
 
 /**
+ * Whether `week` is a scheduled deload (planned light) week for these settings.
+ * Lets the UI flag the deload *before* logging, so the reduced weight isn't
+ * mistaken for an error.
+ */
+export function isScheduledDeloadWeek(
+  week: number,
+  settings?: Pick<Settings, 'deloadEveryWeeks'>,
+): boolean {
+  const every = settings?.deloadEveryWeeks ?? 0
+  return every > 0 && week > 0 && week % every === 0
+}
+
+/**
+ * Per-set prescribed weights for a fixed-rep exercise given the current working
+ * (top-set) weight. A `weightScheme` (e.g. `[45,45,40,40]`) is applied as fixed
+ * offsets from its own max, so a back-off/pyramid plan tracks the working weight
+ * as it progresses. Without a `weightScheme` every set uses the working weight.
+ */
+export function perSetWeights(exercise: Exercise, workingWeight: number): number[] {
+  const n = Math.max(1, exercise.sets)
+  const scheme = exercise.weightScheme
+  if (!exercise.hasWeight || !scheme || scheme.length === 0) {
+    return Array.from({ length: n }, () => workingWeight)
+  }
+  const top = Math.max(...scheme)
+  return Array.from({ length: n }, (_, i) => {
+    const offset = (scheme[Math.min(i, scheme.length - 1)] ?? top) - top
+    return Math.max(0, roundWeight(workingWeight + offset))
+  })
+}
+
+/**
  * Fixed-rep progression for coach-prescribed plans (`exercise.repScheme`).
  *
  * The per-set reps are pinned by the plan every week, so unlike double
@@ -123,6 +155,11 @@ function baseProgression(exercise: Exercise, sets: SetEntry[], target: Target): 
  * of the working weight on every Nth week and resumes the working weight after,
  * carrying the un-deloaded weight in `target.base`. Bodyweight lifts simply
  * hold the prescribed reps.
+ *
+ * The engine advances a single working weight (the top set). A back-off/pyramid
+ * plan is expressed via `exercise.weightScheme` and rendered per-set by
+ * {@link perSetWeights} — progression stays uniform on the top set, so this is
+ * not independent per-set progression.
  *
  * @param week  The training week this session belongs to (drives the deload
  *              cadence). 0/absent disables the scheduled deload.

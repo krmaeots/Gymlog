@@ -32,6 +32,45 @@ function metricUnit(metric: Metric, exercise: Exercise): string {
   return metric === 'volume' ? 'kg maht' : 'kg'
 }
 
+/** Quote a CSV cell only when needed (comma, quote, or newline). */
+function csvCell(v: string): string {
+  return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
+}
+
+/** Flatten every logged set into a CSV — one row per set — for the coach/sheet. */
+function buildSetsCsv(program: Program, logs: Record<string, LogEntry[]>): string {
+  const rows: string[][] = [['päev', 'harjutus', 'nädal', 'kuupäev', 'seeria', 'raskus_kg', 'kordused', 'PR']]
+  for (const day of program.days) {
+    for (const ex of day.exercises) {
+      for (const log of logs[ex.id] ?? []) {
+        log.sets.forEach((s, i) => {
+          rows.push([
+            day.name,
+            ex.name,
+            String(log.week),
+            log.date.slice(0, 10),
+            String(i + 1),
+            String(s.weight),
+            String(s.reps),
+            log.pr && i === 0 ? 'PR' : '',
+          ])
+        })
+      }
+    }
+  }
+  return rows.map((r) => r.map(csvCell).join(',')).join('\n')
+}
+
+function downloadCsv(program: Program, logs: Record<string, LogEntry[]>) {
+  const blob = new Blob([buildSetsCsv(program, logs)], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'gymlog-seeriad.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 /** Store-backed history for the logged-in user. */
 export function HistoryView() {
   const program = useGymStore((s) => s.program)
@@ -68,6 +107,12 @@ export function HistoryViewBody({
         ))}
       </div>
 
+      {exercisesWithLogs.length > 0 && (
+        <button style={S.exportBtn} onClick={() => downloadCsv(program, logs)} title="Ekspordi kõik seeriad CSV-na">
+          ⬇ Ekspordi seeriad (CSV)
+        </button>
+      )}
+
       {exercisesWithLogs.length === 0 ? (
         <div style={S.empty}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📈</div>
@@ -76,8 +121,10 @@ export function HistoryViewBody({
       ) : (
         exercisesWithLogs.map((ex) => {
           const history = logs[ex.id]!
-          const points: ChartPoint[] = history.map((log) => ({
-            x: log.week,
+          // x is the session index (monotonic), so re-logs / rolling weeks never
+          // collide on the axis; the week number stays as the tick label.
+          const points: ChartPoint[] = history.map((log, i) => ({
+            x: i,
             y: metricValue(metric, ex, log),
             label: `N${log.week}`,
           }))
@@ -131,7 +178,8 @@ export function HistoryViewBody({
 
 const S = {
   content: { padding: '14px 14px 96px', maxWidth: 680, margin: '0 auto' } as CSSProperties,
-  metricRow: { display: 'flex', gap: 6, marginBottom: 14 } as CSSProperties,
+  metricRow: { display: 'flex', gap: 6, marginBottom: 10 } as CSSProperties,
+  exportBtn: { width: '100%', marginBottom: 14, padding: '9px 12px', background: 'none', border: `1px solid ${colors.border}`, borderRadius: 8, color: colors.green, fontSize: 13, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
   metricBtn: (active: boolean): CSSProperties => ({
     flex: 1,
     padding: '8px 6px',

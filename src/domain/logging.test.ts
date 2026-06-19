@@ -55,6 +55,20 @@ describe('buildLogUpdate', () => {
     expect(edited.nextTarget.weight).toBe(40) // recomputed from the 40 session, not 42.5
   })
 
+  it('appends (never overwrites) a same-week session logged on a different day', () => {
+    // Rolling split: the week counter has not advanced between two real sessions
+    // of the same day. The same-day guard must APPEND, not silently replace.
+    const first = buildLogUpdate({ ...base, sets: sets([40, 8], [40, 8], [40, 8], [40, 8]), history: [] })
+    const second = buildLogUpdate({
+      ...base,
+      date: '2026-01-08T00:00:00.000Z', // same week field, different calendar day
+      sets: sets([42.5, 8], [42.5, 8], [42.5, 8], [42.5, 8]),
+      currentTarget: first.nextTarget,
+      history: first.logs,
+    })
+    expect(second.logs).toHaveLength(2) // both sessions preserved — no data loss
+  })
+
   it('appends across different weeks', () => {
     const wk1 = buildLogUpdate({ ...base, sets: sets([40, 6], [40, 6], [40, 6], [40, 6]), history: [] })
     const wk2 = buildLogUpdate({

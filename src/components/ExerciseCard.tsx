@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import type { ChangeType, Exercise, SetEntry, Target } from '../domain/types'
+import { isScheduledDeloadWeek, perSetWeights } from '../domain/overload'
 import { setsSummary, targetText } from '../lib/format'
 import { isStorageHealthy, useGymStore } from '../store/useGymStore'
 import { useToast } from '../store/useToast'
@@ -24,16 +25,18 @@ const CHANGE_PILL: Record<ChangeType, string> = {
 
 interface Props {
   exercise: Exercise
+  /** The training week in effect for this exercise's day (its cycle or the global week). */
+  week: number
   open: boolean
   onToggle: () => void
   /** Called after a first-time save (not an edit) so the parent can advance. */
   onSaved?: () => void
 }
 
-export function ExerciseCard({ exercise: ex, open, onToggle, onSaved }: Props) {
-  const week = useGymStore((s) => s.week)
+export function ExerciseCard({ exercise: ex, week, open, onToggle, onSaved }: Props) {
   const target = useGymStore((s) => s.targets[ex.id])
   const history = useGymStore((s) => s.logs[ex.id] ?? [])
+  const settings = useGymStore((s) => s.settings)
   const logExercise = useGymStore((s) => s.logExercise)
   const showToast = useToast((s) => s.show)
 
@@ -43,16 +46,24 @@ export function ExerciseCard({ exercise: ex, open, onToggle, onSaved }: Props) {
 
   const tgt = target ?? { weight: ex.weightStart, reps: ex.repsLow, repsHigh: ex.repsHigh }
 
+  // A coach's forward plan (weekPlan) for this week overrides the computed
+  // working weight; otherwise use the target's weight. weightScheme then spreads
+  // it across the sets as a pyramid/back-off (perSetWeights).
+  const plannedWeight = ex.weekPlan?.find((p) => p.week === week)?.weight
+  const workingWeight = plannedWeight ?? tgt.weight
+  const setWeights = perSetWeights(ex, workingWeight)
+  const deloadWeek = !!ex.repScheme && ex.hasWeight && isScheduledDeloadWeek(week, settings)
+
   // Local, editable set inputs, seeded once on mount. The parent keys this card
   // by `${ex.id}-${week}`, so a NEW WEEK remounts it and re-seeds from the
   // (advanced) target; logging within the same week does not remount.
   const [inputs, setInputs] = useState<{ w: string; r: string }[]>(() =>
     Array.from({ length: ex.sets }, (_, i) => {
       if (!isDone) {
-        // Fixed-rep plans pre-fill each set's prescribed reps; otherwise the
-        // single target rep count seeds every set.
+        // Fixed-rep plans pre-fill each set's prescribed reps + per-set weight;
+        // otherwise the single target rep count / weight seeds every set.
         const reps = ex.repScheme?.[i] ?? tgt.reps
-        return { w: String(tgt.weight), r: String(reps) }
+        return { w: String(setWeights[i] ?? workingWeight), r: String(reps) }
       }
       // Already logged: show what was actually performed, blank for any set with
       // no record (e.g. set count raised after logging) — never leak next
@@ -105,6 +116,12 @@ export function ExerciseCard({ exercise: ex, open, onToggle, onSaved }: Props) {
       {open && (
         <div style={S.cardBody}>
           <div style={S.prevRow(isPR)}>{prevText}</div>
+
+          {deloadWeek && !isDone && (
+            <div style={S.deloadBanner}>
+              🔄 <strong>Deload-nädal</strong> — kavandatud kerge nädal (~{Math.round((settings.deloadFactor ?? 0.5) * 100)}% maha). Keskendu puhtale tehnikale ja taastu.
+            </div>
+          )}
 
           <div style={S.setsGrid}>
             {inputs.map((row, i) => (
@@ -213,6 +230,7 @@ const S = {
   exName: { fontWeight: 700, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
   exNote: { fontSize: 13, color: colors.faint, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
   machine: { display: 'inline-block', marginTop: 5, fontSize: 12, fontWeight: 700, color: colors.accent, background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap' } as CSSProperties,
+  deloadBanner: { fontSize: 13.5, lineHeight: 1.5, color: '#e87c47', background: 'rgba(232,124,71,0.08)', border: '1px solid #5a2e22', borderRadius: 8, padding: '9px 12px', marginBottom: 12 } as CSSProperties,
   targetBadge: {
     background: colors.surface2,
     border: `1px solid ${colors.border}`,

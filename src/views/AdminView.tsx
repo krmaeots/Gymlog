@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react'
 import type { GymState } from '../domain/types'
 import { fmtDate } from '../lib/format'
 import * as P from '../lib/program'
@@ -194,6 +194,28 @@ function ManageUser({
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'plan' | 'progress'>('plan')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  // Import a plan (program + settings only) from a JSON export. Logged sets are
+  // never touched: the admin save uses gym_admin_push_program, which merges only
+  // program+settings, so a coach can refresh the plan without wiping progress.
+  const importPlan = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const incoming = coerceState(JSON.parse(String(ev.target?.result)))
+        setState((s) => (s ? { ...s, program: incoming.program, settings: incoming.settings } : s))
+        setDirty(true)
+        showToast('Kava laetud — vajuta „Salvesta plaan“ (logid jäävad alles)')
+      } catch {
+        showToast('Viga faili laadimisel')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
 
   useEffect(() => {
     let alive = true
@@ -244,7 +266,17 @@ function ManageUser({
 
       {err && <p style={{ ...S.muted, padding: 16 }}>{err}</p>}
       {!state && !err && <p style={{ ...S.muted, padding: 16 }}>Laen…</p>}
-      {state && api && tab === 'plan' && <ProgramEditorBody api={api} />}
+      {state && api && tab === 'plan' && (
+        <>
+          <div style={{ maxWidth: 680, margin: '0 auto', padding: '10px 14px 0' }}>
+            <label style={{ ...S.btn, display: 'inline-block', cursor: 'pointer' }} title="Impordi kava JSON-failist">
+              ⬆ Impordi kava (JSON)
+              <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={importPlan} />
+            </label>
+          </div>
+          <ProgramEditorBody api={api} />
+        </>
+      )}
       {state && tab === 'progress' && <HistoryViewBody program={state.program} logs={state.logs} />}
     </div>
   )

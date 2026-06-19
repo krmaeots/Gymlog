@@ -4,6 +4,8 @@ import {
   estimate1RM,
   floorToStep,
   isPersonalRecord,
+  isScheduledDeloadWeek,
+  perSetWeights,
   roundWeight,
   sessionVolume,
   topSetWeight,
@@ -263,5 +265,36 @@ describe('calcNext — fixed-rep mode (coach-prescribed plan)', () => {
     expect(next.change).toBe('same')
     expect(next.weight).toBe(42.5) // back to the pre-deload working weight
     expect(next.base).toBe(42.5)
+  })
+})
+
+describe('isScheduledDeloadWeek', () => {
+  const s = { deloadEveryWeeks: 6 }
+  it('flags every Nth week (and never week 0 or when disabled)', () => {
+    expect(isScheduledDeloadWeek(6, s)).toBe(true)
+    expect(isScheduledDeloadWeek(12, s)).toBe(true)
+    expect(isScheduledDeloadWeek(5, s)).toBe(false)
+    expect(isScheduledDeloadWeek(0, s)).toBe(false)
+    expect(isScheduledDeloadWeek(6, { deloadEveryWeeks: 0 })).toBe(false)
+    expect(isScheduledDeloadWeek(6, undefined)).toBe(false)
+  })
+})
+
+describe('perSetWeights', () => {
+  const fixed: Exercise = { ...weighted, sets: 4, repScheme: [10, 10, 9, 8] }
+
+  it('uses the working weight for every set without a weightScheme', () => {
+    expect(perSetWeights(fixed, 50)).toEqual([50, 50, 50, 50])
+  })
+
+  it('applies a weightScheme as fixed offsets from its top, tracking the working weight', () => {
+    const pyramid: Exercise = { ...fixed, weightScheme: [45, 45, 40, 40] }
+    expect(perSetWeights(pyramid, 45)).toEqual([45, 45, 40, 40])
+    expect(perSetWeights(pyramid, 50)).toEqual([50, 50, 45, 45]) // top advanced +5, offsets preserved
+  })
+
+  it('returns the working weight for bodyweight exercises (no negative weights)', () => {
+    const bw: Exercise = { ...bodyweight, sets: 3, repScheme: [15, 15, 15], weightScheme: [0, 0, 0] }
+    expect(perSetWeights(bw, 0)).toEqual([0, 0, 0])
   })
 })
