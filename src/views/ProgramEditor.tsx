@@ -249,6 +249,7 @@ function ExerciseEditor({
           <div style={{ fontSize: 11, color: colors.faint }}>
             {ex.sets} × {ex.repsLow}–{ex.repsHigh}
             {ex.hasWeight ? ` · ${targetText(ex, { weight: ex.weightStart, reps: ex.repsLow, repsHigh: ex.repsHigh })}` : ' · keharaskus'}
+            {ex.machine ? ` · 🛠 masin ${ex.machine}` : ''}
           </div>
         </div>
         <button style={S.iconBtn} disabled={isFirst} onClick={() => move(dayKey, ex.id, -1)} aria-label="Üles">
@@ -277,6 +278,15 @@ function ExerciseEditor({
           <div style={S.field}>
             <label style={S.label}>Märkus / tehnika</label>
             <input style={S.input} value={ex.note} onChange={(e) => update(dayKey, ex.id, { note: e.target.value })} />
+          </div>
+          <div style={S.field}>
+            <label style={S.label}>Masina nr (valikuline)</label>
+            <input
+              style={S.input}
+              value={ex.machine ?? ''}
+              placeholder="nt 76 või 49 / 50"
+              onChange={(e) => update(dayKey, ex.id, { machine: e.target.value.trim() ? e.target.value : undefined })}
+            />
           </div>
           <div style={S.grid}>
             <Labeled label="Seeriad">{num('sets', { min: 1 })}</Labeled>

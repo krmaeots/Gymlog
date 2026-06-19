@@ -1,0 +1,516 @@
+{
+  "schemaVersion": 3,
+  "week": 1,
+  "program": {
+    "days": [
+      {
+        "key": "rind_triits",
+        "name": "Rind ja triits",
+        "sub": "6 harjutust · 3×6–8",
+        "exercises": [
+          {
+            "id": "rinnalt_hantlid",
+            "name": "Rinnalt surumine hantlitega",
+            "note": "Põhiliigutus — kontrollitud tempo",
+            "sets": 3,
+            "repsLow": 8,
+            "repsHigh": 8,
+            "weightStep": 2.5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "id": "rinnalt_masin",
+            "name": "Masinal rinnalt surumine",
+            "note": "",
+            "sets": 3,
+            "repsLow": 8,
+            "repsHigh": 8,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "id": "rinna_masin",
+            "name": "Rinna masin",
+            "note": "",
+            "sets": 3,
+            "repsLow": 8,
+            "repsHigh": 8,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              8,
+              8,
+              8
+            ],
+            "machine": "76"
+          },
+          {
+            "id": "triits_uhe_kaega",
+            "name": "Ühe käega triitsepsi surumine",
+            "note": "Küünarnukk fikseeritud keha kõrval",
+            "sets": 3,
+            "repsLow": 8,
+            "repsHigh": 8,
+            "weightStep": 2.5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "id": "triits_masin",
+            "name": "Triitsepsi masin (ette kallutades)",
+            "note": "",
+            "sets": 3,
+            "repsLow": 8,
+            "repsHigh": 8,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              8,
+              8,
+              8
+            ],
+            "machine": "71"
+          },
+          {
+            "id": "triits_ulepea",
+            "name": "Ülepea hantli tõsted (triitseps)",
+            "note": "",
+            "sets": 3,
+            "repsLow": 8,
+            "repsHigh": 8,
+            "weightStep": 2.5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              8,
+              8,
+              8
+            ]
+          }
+        ]
+      },
+      {
+        "key": "tuhar_tagareis",
+        "name": "Tuhar ja tagareis",
+        "sub": "5 harjutust · 3×10–12",
+        "exercises": [
+          {
+            "id": "kukk_smith",
+            "name": "Kükk smithis",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ]
+          },
+          {
+            "id": "tagareis_kohuli",
+            "name": "Tagareis kõhuli (leg curl)",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "45 / 47"
+          },
+          {
+            "id": "jalgade_eemaldamine",
+            "name": "Jalgade eemaldamine (abduktsioon)",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "43"
+          },
+          {
+            "id": "peputosted",
+            "name": "Peputõsted alaseljamasinal",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ]
+          },
+          {
+            "id": "valjaasted_kang",
+            "name": "Väljaasted kangiga",
+            "note": "2 seeriat",
+            "sets": 2,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 2.5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12
+            ]
+          }
+        ]
+      },
+      {
+        "key": "olg_selg",
+        "name": "Õlg ja selg",
+        "sub": "5 harjutust · 3×10–12",
+        "exercises": [
+          {
+            "id": "olapress_smith",
+            "name": "Õlapress smithis",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ]
+          },
+          {
+            "id": "lai_haare_plokis",
+            "name": "Lai haare plokis (lat pulldown)",
+            "note": "Akna ääres, kus kaablid",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "58 / 59 / 60"
+          },
+          {
+            "id": "olapress_hantlid",
+            "name": "Õlapress hantlitega",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 2.5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ]
+          },
+          {
+            "id": "seljatomme_masin",
+            "name": "Masinal seljatõmme",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "49 / 50"
+          },
+          {
+            "id": "kaldpingil_abs",
+            "name": "Kaldpingil kõhulihased",
+            "note": "",
+            "sets": 3,
+            "repsLow": 15,
+            "repsHigh": 15,
+            "weightStep": 0,
+            "weightStart": 0,
+            "hasWeight": false,
+            "repScheme": [
+              15,
+              15,
+              15
+            ]
+          }
+        ]
+      },
+      {
+        "key": "jalad",
+        "name": "Jalad",
+        "sub": "5 harjutust · 3×10–12",
+        "exercises": [
+          {
+            "id": "leg_press",
+            "name": "Leg press",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "66"
+          },
+          {
+            "id": "jalgade_lahendamine",
+            "name": "Jalgade lähendamine (adduktsioon)",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "44"
+          },
+          {
+            "id": "esireis_masin",
+            "name": "Esireis masinal (jalasirutus)",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "64"
+          },
+          {
+            "id": "saared_masin",
+            "name": "Sääred masinal",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ],
+            "machine": "62"
+          },
+          {
+            "id": "alaselg_masin",
+            "name": "Alaselg alaseljamasinal",
+            "note": "",
+            "sets": 3,
+            "repsLow": 12,
+            "repsHigh": 12,
+            "weightStep": 5,
+            "weightStart": 0,
+            "hasWeight": true,
+            "repScheme": [
+              12,
+              12,
+              12
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "targets": {
+    "rinnalt_hantlid": {
+      "weight": 0,
+      "reps": 8,
+      "repsHigh": 8
+    },
+    "rinnalt_masin": {
+      "weight": 0,
+      "reps": 8,
+      "repsHigh": 8
+    },
+    "rinna_masin": {
+      "weight": 0,
+      "reps": 8,
+      "repsHigh": 8
+    },
+    "triits_uhe_kaega": {
+      "weight": 0,
+      "reps": 8,
+      "repsHigh": 8
+    },
+    "triits_masin": {
+      "weight": 0,
+      "reps": 8,
+      "repsHigh": 8
+    },
+    "triits_ulepea": {
+      "weight": 0,
+      "reps": 8,
+      "repsHigh": 8
+    },
+    "kukk_smith": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "tagareis_kohuli": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "jalgade_eemaldamine": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "peputosted": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "valjaasted_kang": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "olapress_smith": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "lai_haare_plokis": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "olapress_hantlid": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "seljatomme_masin": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "kaldpingil_abs": {
+      "weight": 0,
+      "reps": 15,
+      "repsHigh": 15
+    },
+    "leg_press": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "jalgade_lahendamine": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "esireis_masin": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "saared_masin": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    },
+    "alaselg_masin": {
+      "weight": 0,
+      "reps": 12,
+      "repsHigh": 12
+    }
+  },
+  "logs": {
+    "rinnalt_hantlid": [],
+    "rinnalt_masin": [],
+    "rinna_masin": [],
+    "triits_uhe_kaega": [],
+    "triits_masin": [],
+    "triits_ulepea": [],
+    "kukk_smith": [],
+    "tagareis_kohuli": [],
+    "jalgade_eemaldamine": [],
+    "peputosted": [],
+    "valjaasted_kang": [],
+    "olapress_smith": [],
+    "lai_haare_plokis": [],
+    "olapress_hantlid": [],
+    "seljatomme_masin": [],
+    "kaldpingil_abs": [],
+    "leg_press": [],
+    "jalgade_lahendamine": [],
+    "esireis_masin": [],
+    "saared_masin": [],
+    "alaselg_masin": []
+  },
+  "settings": {
+    "deloadAfterStalls": 3,
+    "deloadFactor": 0.5,
+    "deloadEveryWeeks": 6
+  }
+}
