@@ -53,10 +53,15 @@ the app still deploys as a static PWA, no server to run.
 2. In the SQL editor, paste and run [`supabase/schema.sql`](supabase/schema.sql).
 3. Create the first admin once (SQL editor):
    `select gym_bootstrap_admin('YourName', '1234');`
-4. From **Settings → API**, copy the **Project URL** and **anon public key** into:
-   - `.env.local` for local dev (see [`.env.example`](.env.example)), and
-   - GitHub → **Settings → Secrets and variables → Actions → Variables**:
-     `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, then re-deploy.
+4. Copy two values into the env vars below, then re-deploy:
+   - `VITE_SUPABASE_URL` — **Settings → Data API → Project URL**
+     (`https://<ref>.supabase.co`).
+   - `VITE_SUPABASE_ANON_KEY` — **Settings → API Keys → Publishable key**
+     (`sb_publishable_…`; this is the renamed "anon" key — public-safe).
+     ⚠ Never use the **Secret** key (`sb_secret_…`) — it bypasses RLS.
+
+   Put them in `.env.local` for local dev (see [`.env.example`](.env.example))
+   and in GitHub → **Settings → Secrets and variables → Actions → Variables**.
 
 Now opening the app shows a profile picker. Admins get an **Admin** tab to add
 users, set/reset PINs, and edit anyone's plan or view their charts. Everyone
