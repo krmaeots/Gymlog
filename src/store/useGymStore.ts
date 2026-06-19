@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { calcNext, isPersonalRecord } from '../domain/overload'
+import { buildLogUpdate } from '../domain/logging'
 import type { Day, Exercise, GymState, SetEntry, Settings } from '../domain/types'
 import { coerceState, loadState, reconcileEntries, saveState, seedState } from '../lib/storage'
 import * as P from '../lib/program'
@@ -82,30 +82,32 @@ export const useGymStore = create<GymStore>((set, get) => ({
     suspendPersist = false
   },
 
+  // Record a session. Re-running it in the same week edits (replaces) that
+  // week's entry and recomputes progression — see buildLogUpdate.
   logExercise: (exerciseId, sets) => {
     const state = get()
     const found = findExercise(state.program, exerciseId)
     if (!found) return
     const { exercise } = found
-    const target = state.targets[exerciseId] ?? {
+    const currentTarget = state.targets[exerciseId] ?? {
       weight: exercise.weightStart,
       reps: exercise.repsLow,
       repsHigh: exercise.repsHigh,
     }
-    const history = state.logs[exerciseId] ?? []
 
-    const next = calcNext(exercise, sets, target, history, state.settings)
-    const pr = isPersonalRecord(exercise, sets, history)
+    const { logs, nextTarget } = buildLogUpdate({
+      exercise,
+      sets,
+      currentTarget,
+      history: state.logs[exerciseId] ?? [],
+      week: state.week,
+      settings: state.settings,
+      date: new Date().toISOString(),
+    })
 
     set({
-      targets: { ...state.targets, [exerciseId]: { weight: next.weight, reps: next.reps, repsHigh: next.repsHigh } },
-      logs: {
-        ...state.logs,
-        [exerciseId]: [
-          ...history,
-          { week: state.week, date: new Date().toISOString(), sets, pr, change: next.change },
-        ],
-      },
+      targets: { ...state.targets, [exerciseId]: nextTarget },
+      logs: { ...state.logs, [exerciseId]: logs },
     })
   },
 

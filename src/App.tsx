@@ -43,5 +43,5 @@ export default function App() {
 }
 
 const S = {
-  app: { background: colors.bg, minHeight: '100vh', color: colors.text, fontSize: 14 } as CSSProperties,
+  app: { background: colors.bg, minHeight: '100vh', color: colors.text, fontSize: 16 } as CSSProperties,
 }

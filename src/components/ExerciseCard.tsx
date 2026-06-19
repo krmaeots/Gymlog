@@ -82,11 +82,6 @@ export function ExerciseCard({ exercise: ex, open, onToggle }: Props) {
     ? `Eelmine (nädal ${lastLog.week}): ${setsSummary(ex, lastLog)}`
     : 'Esimene kord — alusta sihtraskusega'
 
-  const needed = ex.sets - 1
-  const algoText = ex.hasWeight
-    ? `${needed}+ seeriat saavad ${tgt.repsHigh} kordust → raskus tõuseb. 1–2 seeriat → +1 kordus sihtmärk. Ükski → sama raskus.`
-    : `Enamik seeriat saab ${tgt.repsHigh} kordust → +1 kordus järgmisel nädalal.`
-
   return (
     <div style={S.card(isDone, open)}>
       <div style={S.cardHeader} onClick={onToggle}>
@@ -103,7 +98,6 @@ export function ExerciseCard({ exercise: ex, open, onToggle }: Props) {
       {open && (
         <div style={S.cardBody}>
           <div style={S.prevRow(isPR)}>{prevText}</div>
-          <div style={S.algoBox}>{algoText}</div>
 
           <div style={S.setsGrid}>
             {inputs.map((row, i) => (
@@ -142,12 +136,13 @@ export function ExerciseCard({ exercise: ex, open, onToggle }: Props) {
             ))}
           </div>
 
+          {isDone && (
+            <div style={S.editHint}>Muuda numbreid ja vajuta „Uuenda“ — sihtmärk arvutatakse ümber.</div>
+          )}
           <div style={{ display: 'flex', gap: 8 }}>
-            {!isDone && (
-              <button style={S.logBtn} onClick={handleLog}>
-                ✓ Märgi tehtuks
-              </button>
-            )}
+            <button style={S.logBtn} onClick={handleLog}>
+              {isDone ? '✏️ Uuenda' : '✓ Märgi tehtuks'}
+            </button>
             <button style={S.restBtn} onClick={() => startRest(restSeconds)}>
               ⏱ Puhka
             </button>
@@ -198,29 +193,29 @@ const S = {
     marginBottom: 8,
     overflow: 'hidden',
   }),
-  cardHeader: { display: 'flex', alignItems: 'center', padding: '12px 13px', cursor: 'pointer', gap: 10 } as CSSProperties,
+  cardHeader: { display: 'flex', alignItems: 'center', padding: '14px 14px', cursor: 'pointer', gap: 12 } as CSSProperties,
   dot: (done: boolean, pr: boolean): CSSProperties => ({
-    width: 26,
-    height: 26,
+    width: 30,
+    height: 30,
     borderRadius: '50%',
     border: `2px solid ${pr ? colors.accent : done ? colors.green : '#333'}`,
     background: pr ? colors.accent : done ? colors.green : 'transparent',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: 700,
     color: pr ? '#000' : '#fff',
     flexShrink: 0,
   }),
-  exName: { fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
-  exNote: { fontSize: 11, color: colors.faint, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
+  exName: { fontWeight: 700, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
+  exNote: { fontSize: 13, color: colors.faint, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
   targetBadge: {
     background: colors.surface2,
     border: `1px solid ${colors.border}`,
-    borderRadius: 6,
-    padding: '4px 9px',
-    fontSize: 12,
+    borderRadius: 8,
+    padding: '6px 11px',
+    fontSize: 15,
     fontWeight: 700,
     color: colors.accent,
     whiteSpace: 'nowrap',
@@ -228,39 +223,39 @@ const S = {
   } as CSSProperties,
   cardBody: { borderTop: `1px solid ${colors.border}`, padding: 14 } as CSSProperties,
   prevRow: (imp: boolean): CSSProperties => ({
-    fontSize: 12,
+    fontSize: 14,
     color: colors.muted,
     background: colors.surface2,
-    borderRadius: 6,
-    padding: '7px 10px',
-    marginBottom: 10,
+    borderRadius: 8,
+    padding: '9px 12px',
+    marginBottom: 12,
     borderLeft: `3px solid ${imp ? colors.green : '#333'}`,
   }),
-  algoBox: { fontSize: 12, color: colors.muted, background: colors.surface2, borderRadius: 6, padding: '7px 10px', marginBottom: 10, lineHeight: 1.6 } as CSSProperties,
-  setsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 10 } as CSSProperties,
-  setBox: { background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 8, padding: '9px 8px' } as CSSProperties,
-  setLbl: { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.faint, marginBottom: 6, textAlign: 'center' } as CSSProperties,
-  inputRow: { display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 } as CSSProperties,
-  inputLbl: { fontSize: 10, color: colors.faint, width: 20 } as CSSProperties,
+  setsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 } as CSSProperties,
+  setBox: { background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 10, padding: '10px 9px' } as CSSProperties,
+  setLbl: { fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.faint, marginBottom: 8, textAlign: 'center' } as CSSProperties,
+  inputRow: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 } as CSSProperties,
+  inputLbl: { fontSize: 14, color: colors.faint, width: 22 } as CSSProperties,
   input: {
     flex: 1,
     background: colors.surface,
     border: '1px solid #333',
-    borderRadius: 5,
+    borderRadius: 8,
     color: colors.text,
     fontFamily: 'inherit',
-    fontSize: 15,
+    fontSize: 22,
     fontWeight: 700,
-    padding: '4px 6px',
+    padding: '8px 6px',
     textAlign: 'center',
     outline: 'none',
     width: '100%',
   } as CSSProperties,
-  logBtn: { flex: 1, padding: 10, background: colors.accent, color: '#000', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
-  restBtn: { padding: '10px 14px', background: colors.surface2, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' } as CSSProperties,
-  nextBox: { marginTop: 10, background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 8, overflow: 'hidden' } as CSSProperties,
-  nextHeader: { padding: '7px 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.faint, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 6 } as CSSProperties,
-  nextDot: { width: 6, height: 6, borderRadius: '50%', background: colors.accent, display: 'inline-block' } as CSSProperties,
-  nextRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: `1px solid ${colors.border}`, fontSize: 13 } as CSSProperties,
-  nextLbl: { color: colors.muted, fontSize: 12 } as CSSProperties,
+  editHint: { fontSize: 13, color: colors.faint, marginBottom: 10, lineHeight: 1.5 } as CSSProperties,
+  logBtn: { flex: 1, padding: 14, background: colors.accent, color: '#000', border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
+  restBtn: { padding: '14px 16px', background: colors.surface2, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' } as CSSProperties,
+  nextBox: { marginTop: 12, background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 8, overflow: 'hidden' } as CSSProperties,
+  nextHeader: { padding: '8px 12px', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.faint, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 6 } as CSSProperties,
+  nextDot: { width: 7, height: 7, borderRadius: '50%', background: colors.accent, display: 'inline-block' } as CSSProperties,
+  nextRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${colors.border}`, fontSize: 16 } as CSSProperties,
+  nextLbl: { color: colors.muted, fontSize: 14 } as CSSProperties,
 }

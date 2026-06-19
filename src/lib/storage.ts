@@ -72,15 +72,25 @@ function sanitizeSet(raw: unknown): SetEntry {
   }
 }
 
+function sanitizeTarget(raw: unknown): Target | undefined {
+  if (isObj(raw) && isFiniteNum(raw.weight) && isFiniteNum(raw.reps) && isFiniteNum(raw.repsHigh)) {
+    return { weight: raw.weight, reps: raw.reps, repsHigh: raw.repsHigh }
+  }
+  return undefined
+}
+
 function sanitizeLogEntry(raw: unknown): LogEntry {
   const e = isObj(raw) ? raw : {}
-  return {
+  const entry: LogEntry = {
     week: isFiniteNum(e.week) ? e.week : 1,
     date: typeof e.date === 'string' ? e.date : '',
     sets: Array.isArray(e.sets) ? e.sets.map(sanitizeSet) : [],
     pr: e.pr === true,
     change: VALID_CHANGES.has(e.change as ChangeType) ? (e.change as ChangeType) : 'same',
   }
+  const target = sanitizeTarget(e.target)
+  if (target) entry.target = target
+  return entry
 }
 
 /** Keep only object-keyed arrays; repair each entry. Non-arrays are dropped. */
@@ -98,9 +108,8 @@ function sanitizeTargets(raw: unknown): Record<string, Target> {
   if (!isObj(raw)) return {}
   const out: Record<string, Target> = {}
   for (const [id, t] of Object.entries(raw)) {
-    if (isObj(t) && isFiniteNum(t.weight) && isFiniteNum(t.reps) && isFiniteNum(t.repsHigh)) {
-      out[id] = { weight: t.weight, reps: t.reps, repsHigh: t.repsHigh }
-    }
+    const target = sanitizeTarget(t)
+    if (target) out[id] = target
   }
   return out
 }

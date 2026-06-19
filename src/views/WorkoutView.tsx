@@ -79,14 +79,14 @@ function DayView({
     <>
       <div style={S.dayIntro}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>{day.name}</div>
-          <div style={{ fontSize: 12, color: colors.faint, marginTop: 2 }}>{day.sub}</div>
+          <div style={{ fontWeight: 700, fontSize: 17 }}>{day.name}</div>
+          <div style={{ fontSize: 13, color: colors.faint, marginTop: 3 }}>{day.sub}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontWeight: 900, fontSize: 28, color: colors.accent, lineHeight: 1 }}>
+          <div style={{ fontWeight: 900, fontSize: 30, color: colors.accent, lineHeight: 1 }}>
             {doneCnt}/{day.exercises.length}
           </div>
-          <div style={{ fontSize: 11, color: colors.faint }}>tehtud</div>
+          <div style={{ fontSize: 12, color: colors.faint }}>tehtud</div>
         </div>
       </div>
       <div style={S.progBar}>
@@ -167,7 +167,7 @@ function NextWeekSummary({
                 const arrow = log.change === 'same' ? '→' : log.change === 'deload' ? '↓' : '↑'
                 return (
                   <div key={ex.id} style={S.nwRow}>
-                    <span style={{ color: colors.muted, fontSize: 12, flex: 1, paddingRight: 8 }}>{ex.name}</span>
+                    <span style={{ color: colors.muted, fontSize: 14, flex: 1, paddingRight: 8 }}>{ex.name}</span>
                     <span style={{ fontWeight: 700, color: meta.color, whiteSpace: 'nowrap' }}>
                       {arrow} {targetText(ex, tgt)}
                       <Pill kind={meta.pill}>{CHANGE_PILL[log.change]}</Pill>
@@ -193,7 +193,7 @@ function Stat({ num, label }: { num: number | string; label: string }) {
   return (
     <div style={S.statBox}>
       <div style={{ fontWeight: 900, fontSize: 32, color: colors.accent, lineHeight: 1 }}>{num}</div>
-      <div style={{ fontSize: 11, color: colors.muted, marginTop: 3 }}>{label}</div>
+      <div style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>{label}</div>
     </div>
   )
 }
@@ -206,8 +206,8 @@ function shortLabel(name: string): string {
 const S = {
   tabs: { display: 'flex', background: colors.surface2, borderBottom: `1px solid ${colors.border}`, overflowX: 'auto', padding: '0 14px', scrollbarWidth: 'none' } as CSSProperties,
   tab: (active: boolean): CSSProperties => ({
-    padding: '11px 14px',
-    fontSize: 12,
+    padding: '13px 15px',
+    fontSize: 14,
     fontWeight: 700,
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
@@ -223,8 +223,8 @@ const S = {
   statRow: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 } as CSSProperties,
   statBox: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 12, textAlign: 'center' } as CSSProperties,
   nwBlock: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, marginBottom: 10, overflow: 'hidden' } as CSSProperties,
-  nwHead: { padding: '9px 13px', background: colors.surface2, fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: colors.faint, borderBottom: `1px solid ${colors.border}` } as CSSProperties,
-  nwRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 13px', borderBottom: '1px solid #1a1a1a', fontSize: 13 } as CSSProperties,
-  nextWeekBtn: { width: '100%', padding: 13, background: colors.green, color: '#000', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 14 } as CSSProperties,
-  empty: { textAlign: 'center', padding: '40px 20px', color: colors.faint, fontSize: 13, lineHeight: 1.8 } as CSSProperties,
+  nwHead: { padding: '10px 14px', background: colors.surface2, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.faint, borderBottom: `1px solid ${colors.border}` } as CSSProperties,
+  nwRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #1a1a1a', fontSize: 15 } as CSSProperties,
+  nextWeekBtn: { width: '100%', padding: 15, background: colors.green, color: '#000', border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer', marginTop: 14 } as CSSProperties,
+  empty: { textAlign: 'center', padding: '40px 20px', color: colors.faint, fontSize: 15, lineHeight: 1.8 } as CSSProperties,
 }

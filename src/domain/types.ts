@@ -68,6 +68,13 @@ export interface LogEntry {
   pr: boolean
   /** What the engine prescribed for next time, based on this session. */
   change: ChangeType
+  /**
+   * The prescription this session was performed against. Stored so an
+   * already-logged session can be re-computed correctly when edited (the
+   * live `targets[id]` has by then advanced to next time's prescription).
+   * Optional for backwards-compatibility with pre-existing/legacy logs.
+   */
+  target?: Target
 }
 
 /** The prescription for the next time an exercise is performed. */

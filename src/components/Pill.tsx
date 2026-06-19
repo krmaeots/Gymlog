@@ -13,9 +13,9 @@ export function Pill({ kind, children }: { kind: PillKind; children: React.React
   return (
     <span
       style={{
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: 700,
-        padding: '2px 8px',
+        padding: '3px 9px',
         borderRadius: 20,
         marginLeft: 8,
         whiteSpace: 'nowrap',

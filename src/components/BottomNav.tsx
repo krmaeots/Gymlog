@@ -27,7 +27,7 @@ export function BottomNav({
         const active = view === item.key
         return (
           <button key={item.key} style={S.item(active)} onClick={() => onChange(item.key)} aria-current={active}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>{item.icon}</span>
+            <span style={{ fontSize: 23, lineHeight: 1 }}>{item.icon}</span>
             <span>{item.label}</span>
           </button>
         )
@@ -54,11 +54,11 @@ const S = {
     flexDirection: 'column',
     alignItems: 'center',
     gap: 3,
-    padding: '8px 0 10px',
+    padding: '9px 0 11px',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 700,
     color: active ? colors.accent : colors.faint,
   }),

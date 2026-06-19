@@ -106,7 +106,7 @@ const S = {
     zIndex: 100,
   } as CSSProperties,
   title: { fontWeight: 900, fontSize: 22, letterSpacing: '0.04em', color: colors.text } as CSSProperties,
-  weekBadge: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: '5px 12px', fontSize: 13, fontWeight: 600, color: colors.muted } as CSSProperties,
-  btn: { background: 'none', border: '1px solid #333', borderRadius: 6, color: '#888', fontSize: 14, padding: '5px 9px', cursor: 'pointer', lineHeight: 1 } as CSSProperties,
+  weekBadge: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 14, fontWeight: 600, color: colors.muted } as CSSProperties,
+  btn: { background: 'none', border: '1px solid #333', borderRadius: 6, color: '#888', fontSize: 16, padding: '6px 10px', cursor: 'pointer', lineHeight: 1 } as CSSProperties,
   userBtn: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 6, color: colors.text, fontSize: 12, fontWeight: 700, padding: '5px 10px', cursor: 'pointer', lineHeight: 1, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
 }
