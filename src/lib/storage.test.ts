@@ -38,6 +38,27 @@ describe('reconcileEntries', () => {
     expect(reconciled.logs.ghost).toBeUndefined()
     expect(reconciled.targets[firstExerciseId]).toBeDefined()
   })
+
+  it('reset-progress path: keeps program + settings, clears logs, reseeds targets', () => {
+    // Mirrors the store's resetProgress action: reconcileEntries({ ...s, week: 1, targets: {}, logs: {} }).
+    const ex = DEFAULT_PROGRAM.days[0]!.exercises[0]!
+    const base = seedState()
+    const progressed: GymState = {
+      ...base,
+      week: 9,
+      settings: { ...base.settings, deloadAfterStalls: 4 },
+      targets: { ...base.targets, [ex.id]: { weight: 999, reps: 5, repsHigh: 8 } },
+      logs: { ...base.logs, [ex.id]: [{ week: 1, date: '2026-01-01', sets: [{ weight: 50, reps: 10 }], pr: true, change: 'weight_up' }] },
+    }
+
+    const reset = reconcileEntries({ ...progressed, week: 1, targets: {}, logs: {} })
+
+    expect(reset.program).toBe(progressed.program) // plan untouched
+    expect(reset.settings.deloadAfterStalls).toBe(4) // settings untouched
+    expect(reset.week).toBe(1)
+    expect(reset.logs[ex.id]).toEqual([]) // logged sets cleared
+    expect(reset.targets[ex.id]).toEqual({ weight: ex.weightStart, reps: ex.repsLow, repsHigh: ex.repsHigh }) // fresh start
+  })
 })
 
 describe('coerceState — legacy migration', () => {

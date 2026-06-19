@@ -3,6 +3,7 @@ import type { Day, Exercise, Program, Settings } from '../domain/types'
 import { makeId } from '../lib/id'
 import { targetText } from '../lib/format'
 import { useGymStore } from '../store/useGymStore'
+import { useToast } from '../store/useToast'
 import { colors } from '../theme'
 
 /**
@@ -67,11 +68,15 @@ function newDay(): Day {
 
 /** Store-backed program editor for the logged-in user (Kava tab). */
 export function ProgramEditor() {
-  return <ProgramEditorBody api={useStoreProgramApi()} />
+  return <ProgramEditorBody api={useStoreProgramApi()} footer={<ResetProgressPanel />} />
 }
 
-/** Editor over any {@link ProgramEditApi} — reused by the admin "Manage" screen. */
-export function ProgramEditorBody({ api }: { api: ProgramEditApi }) {
+/**
+ * Editor over any {@link ProgramEditApi} — reused by the admin "Manage" screen.
+ * `footer` is only passed for the logged-in user's own Kava tab (it carries the
+ * reset-progress action, which the admin "Manage" path can't perform here).
+ */
+export function ProgramEditorBody({ api, footer }: { api: ProgramEditApi; footer?: React.ReactNode }) {
   return (
     <ApiContext.Provider value={api}>
       <div style={S.content}>
@@ -85,8 +90,37 @@ export function ProgramEditorBody({ api }: { api: ProgramEditApi }) {
         <button style={S.addDayBtn} onClick={() => api.addDay(newDay())}>
           + Lisa treeningpäev
         </button>
+
+        {footer}
       </div>
     </ApiContext.Provider>
+  )
+}
+
+/** Danger action: clear all logged progress while keeping the program + settings. */
+function ResetProgressPanel() {
+  const resetProgress = useGymStore((s) => s.resetProgress)
+  const showToast = useToast((s) => s.show)
+
+  const handleReset = () => {
+    if (
+      confirm(
+        'Lähtesta kogu progress? Treeningkava ja seaded jäävad alles, kuid kõik logitud seeriad, ' +
+          'saavutused ja nädalad kustutatakse. Seda ei saa tagasi võtta.',
+      )
+    ) {
+      resetProgress()
+      showToast('Progress lähtestatud — kava jäi alles')
+    }
+  }
+
+  return (
+    <div style={S.dangerZone}>
+      <button style={S.dangerBtn} onClick={handleReset}>
+        ↺ Lähtesta progress (jäta kava alles)
+      </button>
+      <div style={S.dangerHint}>Kustutab logitud seeriad ja alustab 1. nädalast. Kava ei muudeta.</div>
+    </div>
   )
 }
 
@@ -295,4 +329,7 @@ const S = {
   iconBtn: { background: 'none', border: `1px solid ${colors.border}`, borderRadius: 6, color: colors.muted, fontSize: 15, padding: '7px 10px', cursor: 'pointer', flexShrink: 0 } as CSSProperties,
   addExBtn: { width: '100%', marginTop: 10, padding: 12, background: 'none', border: `1px dashed ${colors.border}`, borderRadius: 8, color: colors.muted, fontSize: 15, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
   addDayBtn: { width: '100%', marginTop: 4, padding: 14, background: colors.surface, border: `1px dashed #3a3a3a`, borderRadius: 10, color: colors.accent, fontSize: 16, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
+  dangerZone: { marginTop: 28, paddingTop: 16, borderTop: `1px solid ${colors.border}` } as CSSProperties,
+  dangerBtn: { width: '100%', padding: 14, background: 'none', border: `1px solid #5a2e22`, borderRadius: 10, color: '#e87c47', fontSize: 15, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
+  dangerHint: { fontSize: 12, color: colors.faint, marginTop: 8, textAlign: 'center' } as CSSProperties,
 }

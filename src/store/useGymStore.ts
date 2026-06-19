@@ -14,6 +14,8 @@ interface GymActions {
   startNextWeek: () => void
   /** Wipe everything back to a fresh default program. */
   resetAll: () => void
+  /** Clear logged progress (logs, targets, week) but keep the program + settings. */
+  resetProgress: () => void
   /** Replace the entire state from imported JSON (validated/migrated). */
   importState: (raw: unknown) => void
   updateSettings: (patch: Partial<Settings>) => void
@@ -114,6 +116,10 @@ export const useGymStore = create<GymStore>((set, get) => ({
   startNextWeek: () => set((s) => ({ week: s.week + 1 })),
 
   resetAll: () => set(seedState()),
+
+  // Keep the program + settings; drop all logged sets and reseed fresh starting
+  // targets (reconcileEntries rebuilds them from the program) and reset the week.
+  resetProgress: () => set((s) => reconcileEntries({ ...s, week: 1, targets: {}, logs: {} })),
 
   importState: (raw) => set(coerceState(raw)),
 

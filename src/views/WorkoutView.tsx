@@ -271,9 +271,15 @@ function NextWeekSummary({
       )}
 
       {all.length > 0 && totalDone === all.length && (
-        <button style={S.nextWeekBtn} onClick={handleNextWeek}>
-          🚀 Nädal {week} läbi — Alusta nädal {week + 1}
-        </button>
+        <>
+          {/* Spacer so the last summary row isn't hidden behind the fixed bar. */}
+          <div style={S.nextWeekSpacer} />
+          <div style={S.nextWeekBar}>
+            <button style={S.nextWeekBtn} onClick={handleNextWeek}>
+              🚀 Nädal {week} läbi — Alusta nädal {week + 1}
+            </button>
+          </div>
+        </>
       )}
     </>
   )
@@ -328,6 +334,19 @@ const S = {
   nwBlock: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, marginBottom: 10, overflow: 'hidden' } as CSSProperties,
   nwHead: { padding: '10px 14px', background: colors.surface2, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.faint, borderBottom: `1px solid ${colors.border}` } as CSSProperties,
   nwRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #1a1a1a', fontSize: 15 } as CSSProperties,
-  nextWeekBtn: { width: '100%', padding: 15, background: colors.green, color: '#000', border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer', marginTop: 14 } as CSSProperties,
+  // Fixed action bar pinned just above the BottomNav so "next week" is always
+  // reachable without scrolling to the end of the summary.
+  nextWeekBar: {
+    position: 'fixed',
+    left: 0,
+    right: 0,
+    bottom: 'calc(63px + env(safe-area-inset-bottom))',
+    zIndex: 900,
+    background: colors.bg,
+    borderTop: `1px solid ${colors.border}`,
+    padding: '12px 14px',
+  } as CSSProperties,
+  nextWeekSpacer: { height: 80 } as CSSProperties,
+  nextWeekBtn: { display: 'block', width: '100%', maxWidth: 680, margin: '0 auto', padding: 15, background: colors.green, color: '#000', border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
   empty: { textAlign: 'center', padding: '40px 20px', color: colors.faint, fontSize: 15, lineHeight: 1.8 } as CSSProperties,
 }
