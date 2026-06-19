@@ -68,7 +68,10 @@ export function Header() {
         <button style={{ ...S.btn, color: colors.green, borderColor: '#2a4a35' }} onClick={handleExport} title="Salvesta andmed">
           💾
         </button>
-        {cloudEnabled && session ? (
+        <button style={S.btn} onClick={handleReset} title="Lähtesta kõik andmed">
+          ↺
+        </button>
+        {cloudEnabled && session && (
           <button
             style={S.userBtn}
             onClick={() => {
@@ -77,10 +80,6 @@ export function Header() {
             title="Logi välja"
           >
             {session.name} ⎋
-          </button>
-        ) : (
-          <button style={S.btn} onClick={handleReset} title="Lähtesta">
-            ↺
           </button>
         )}
       </div>
