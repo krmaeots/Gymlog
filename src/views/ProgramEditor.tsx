@@ -97,17 +97,6 @@ function SettingsPanel() {
     <div style={S.block}>
       <div style={S.blockHead}>Seaded</div>
       <div style={S.field}>
-        <label style={S.label}>Puhkepaus (sek)</label>
-        <input
-          style={S.input}
-          type="number"
-          min={10}
-          step={5}
-          value={settings.restSeconds}
-          onChange={(e) => updateSettings({ restSeconds: Math.max(10, parseInt(e.target.value, 10) || 0) })}
-        />
-      </div>
-      <div style={S.field}>
         <label style={S.label}>Deload pärast (paigalseisu nädalat)</label>
         <input
           style={S.input}

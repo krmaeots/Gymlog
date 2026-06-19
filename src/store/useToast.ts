@@ -15,6 +15,6 @@ export const useToast = create<ToastState>((set) => ({
   show: (message) => {
     set({ message, visible: true })
     if (hideTimer) clearTimeout(hideTimer)
-    hideTimer = setTimeout(() => set({ visible: false }), 3000)
+    hideTimer = setTimeout(() => set({ visible: false }), 1500)
   },
 }))

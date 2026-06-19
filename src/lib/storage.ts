@@ -117,7 +117,6 @@ function sanitizeTargets(raw: unknown): Record<string, Target> {
 function sanitizeSettings(raw: unknown): Settings {
   const s = isObj(raw) ? raw : {}
   return {
-    restSeconds: isFiniteNum(s.restSeconds) ? s.restSeconds : DEFAULT_SETTINGS.restSeconds,
     deloadAfterStalls: isFiniteNum(s.deloadAfterStalls)
       ? s.deloadAfterStalls
       : DEFAULT_SETTINGS.deloadAfterStalls,

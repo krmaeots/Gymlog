@@ -57,9 +57,9 @@ describe('coerceState — legacy migration', () => {
   })
 
   it('honours settings present in a legacy file (no silent reset)', () => {
-    const s = coerceState({ week: 1, targets: {}, logs: {}, settings: { restSeconds: 90 } })
-    expect(s.settings.restSeconds).toBe(90)
-    expect(s.settings.deloadAfterStalls).toBe(DEFAULT_SETTINGS.deloadAfterStalls)
+    const s = coerceState({ week: 1, targets: {}, logs: {}, settings: { deloadAfterStalls: 5 } })
+    expect(s.settings.deloadAfterStalls).toBe(5)
+    expect(s.settings.deloadFactor).toBe(DEFAULT_SETTINGS.deloadFactor)
   })
 })
 
@@ -108,7 +108,7 @@ describe('export → import round-trip', () => {
   it('is faithful for a current-schema state', () => {
     const original = seedState()
     original.week = 7
-    original.settings.restSeconds = 150
+    original.settings.deloadAfterStalls = 5
     const roundTripped = coerceState(JSON.parse(JSON.stringify(original)))
     expect(roundTripped).toEqual(original)
   })

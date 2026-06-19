@@ -2,7 +2,6 @@ import { useState, type CSSProperties } from 'react'
 import type { ChangeType, Exercise, SetEntry, Target } from '../domain/types'
 import { setsSummary, targetText } from '../lib/format'
 import { isStorageHealthy, useGymStore } from '../store/useGymStore'
-import { useRestTimer } from '../store/useRestTimer'
 import { useToast } from '../store/useToast'
 import { changeMeta, colors } from '../theme'
 import { Pill } from './Pill'
@@ -27,15 +26,15 @@ interface Props {
   exercise: Exercise
   open: boolean
   onToggle: () => void
+  /** Called after a first-time save (not an edit) so the parent can advance. */
+  onSaved?: () => void
 }
 
-export function ExerciseCard({ exercise: ex, open, onToggle }: Props) {
+export function ExerciseCard({ exercise: ex, open, onToggle, onSaved }: Props) {
   const week = useGymStore((s) => s.week)
   const target = useGymStore((s) => s.targets[ex.id])
   const history = useGymStore((s) => s.logs[ex.id] ?? [])
-  const restSeconds = useGymStore((s) => s.settings.restSeconds)
   const logExercise = useGymStore((s) => s.logExercise)
-  const startRest = useRestTimer((s) => s.start)
   const showToast = useToast((s) => s.show)
 
   const lastLog = history.at(-1)
@@ -65,17 +64,19 @@ export function ExerciseCard({ exercise: ex, open, onToggle }: Props) {
     setInputs((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
 
   const handleLog = () => {
+    const wasFresh = !isDone
     const sets: SetEntry[] = inputs.map(({ w, r }) => ({
       weight: ex.hasWeight ? parseFloat(w) || 0 : 0,
       reps: parseInt(r, 10) || tgt.reps,
     }))
     logExercise(ex.id, sets)
-    startRest(restSeconds)
     // If persistence just failed, the store already surfaced a warning toast —
     // don't overwrite it with a misleading success message.
     if (!isStorageHealthy()) return
     const change = useGymStore.getState().logs[ex.id]?.at(-1)?.change ?? 'same'
     showToast(CHANGE_MESSAGES[change] ?? '✓ Salvestatud')
+    // Fresh save → jump to the next exercise. Editing a past entry stays put.
+    if (wasFresh) onSaved?.()
   }
 
   const prevText = lastLog
@@ -139,14 +140,9 @@ export function ExerciseCard({ exercise: ex, open, onToggle }: Props) {
           {isDone && (
             <div style={S.editHint}>Muuda numbreid ja vajuta „Uuenda“ — sihtmärk arvutatakse ümber.</div>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={S.logBtn} onClick={handleLog}>
-              {isDone ? '✏️ Uuenda' : '✓ Märgi tehtuks'}
-            </button>
-            <button style={S.restBtn} onClick={() => startRest(restSeconds)}>
-              ⏱ Puhka
-            </button>
-          </div>
+          <button style={S.logBtn} onClick={handleLog}>
+            {isDone ? '✏️ Uuenda' : '✓ Märgi tehtuks'}
+          </button>
 
           {isDone && lastLog && (
             <NextWeekBox change={lastLog.change} exercise={ex} target={tgt} />
@@ -251,8 +247,7 @@ const S = {
     width: '100%',
   } as CSSProperties,
   editHint: { fontSize: 13, color: colors.faint, marginBottom: 10, lineHeight: 1.5 } as CSSProperties,
-  logBtn: { flex: 1, padding: 14, background: colors.accent, color: '#000', border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
-  restBtn: { padding: '14px 16px', background: colors.surface2, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' } as CSSProperties,
+  logBtn: { width: '100%', padding: 14, background: colors.accent, color: '#000', border: 'none', borderRadius: 10, fontSize: 17, fontWeight: 700, cursor: 'pointer' } as CSSProperties,
   nextBox: { marginTop: 12, background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 8, overflow: 'hidden' } as CSSProperties,
   nextHeader: { padding: '8px 12px', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.faint, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 6 } as CSSProperties,
   nextDot: { width: 7, height: 7, borderRadius: '50%', background: colors.accent, display: 'inline-block' } as CSSProperties,

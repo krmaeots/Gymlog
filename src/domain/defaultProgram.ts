@@ -239,7 +239,6 @@ export const DEFAULT_PROGRAM: Program = {
 
 /** Default user settings. */
 export const DEFAULT_SETTINGS: Settings = {
-  restSeconds: 120,
   deloadAfterStalls: 3,
   deloadFactor: 0.1,
 }

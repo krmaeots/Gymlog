@@ -9,9 +9,9 @@ export function Toast() {
       aria-live="polite"
       style={{
         position: 'fixed',
-        bottom: 'calc(72px + env(safe-area-inset-bottom))',
+        top: 'calc(12px + env(safe-area-inset-top))',
         left: '50%',
-        transform: `translateX(-50%) translateY(${visible ? 0 : 80}px)`,
+        transform: `translateX(-50%) translateY(${visible ? 0 : -90}px)`,
         background: colors.surface,
         border: `1px solid #333`,
         color: colors.text,

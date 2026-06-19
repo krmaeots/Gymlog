@@ -1,8 +1,10 @@
 import { useState, type CSSProperties } from 'react'
 import { ExerciseCard } from '../components/ExerciseCard'
 import { Pill } from '../components/Pill'
+import type { Day } from '../domain/types'
+import { sessionVolume } from '../domain/overload'
 import { allExercises } from '../lib/program'
-import { targetText } from '../lib/format'
+import { fmtWeight, targetText } from '../lib/format'
 import { useGymStore } from '../store/useGymStore'
 import { useToast } from '../store/useToast'
 import { changeMeta, colors } from '../theme'
@@ -49,6 +51,7 @@ export function WorkoutView() {
             dayKey={days[tab]!.key}
             openCard={openCard}
             onToggle={(id) => setOpenCard((cur) => (cur === id ? null : id))}
+            setOpenCard={setOpenCard}
           />
         ) : (
           <NextWeekSummary onJumpToFirst={() => setTab(0)} onCollapse={() => setOpenCard(null)} />
@@ -62,10 +65,12 @@ function DayView({
   dayKey,
   openCard,
   onToggle,
+  setOpenCard,
 }: {
   dayKey: string
   openCard: string | null
   onToggle: (id: string) => void
+  setOpenCard: (id: string | null) => void
 }) {
   const day = useGymStore((s) => s.program.days.find((d) => d.key === dayKey))
   const week = useGymStore((s) => s.week)
@@ -74,9 +79,29 @@ function DayView({
 
   const doneCnt = day.exercises.filter((ex) => logs[ex.id]?.at(-1)?.week === week).length
   const pct = day.exercises.length ? (doneCnt / day.exercises.length) * 100 : 0
+  const allDone = day.exercises.length > 0 && doneCnt === day.exercises.length
+
+  // After a fresh save, jump to the next not-yet-done exercise (reading the
+  // store directly so the just-saved one counts as done). When none remain,
+  // collapse everything and scroll up to reveal the day summary.
+  const advance = (savedId: string) => {
+    const freshLogs = useGymStore.getState().logs
+    const order = day.exercises
+    const start = order.findIndex((e) => e.id === savedId)
+    for (let k = 1; k <= order.length; k++) {
+      const ex = order[(start + k) % order.length]!
+      if (ex.id !== savedId && freshLogs[ex.id]?.at(-1)?.week !== week) {
+        setOpenCard(ex.id)
+        return
+      }
+    }
+    setOpenCard(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <>
+      {allDone && <DaySummary day={day} />}
       <div style={S.dayIntro}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 17 }}>{day.name}</div>
@@ -98,12 +123,77 @@ function DayView({
           exercise={ex}
           open={openCard === ex.id}
           onToggle={() => onToggle(ex.id)}
+          onSaved={() => advance(ex.id)}
         />
       ))}
       {day.exercises.length === 0 && (
         <div style={S.empty}>Selles päevas pole harjutusi. Lisa neid „Kava“ vahelehel.</div>
       )}
     </>
+  )
+}
+
+/** Largest reference weight at or below the tonnage, for a fun comparison. */
+const WEIGHT_REFS = [
+  { kg: 5, label: 'kassi' },
+  { kg: 70, label: 'inimese' },
+  { kg: 200, label: 'mootorratta' },
+  { kg: 500, label: 'hobuse' },
+  { kg: 1000, label: 'väikese auto' },
+  { kg: 5000, label: 'elevandi' },
+  { kg: 12000, label: 'bussi' },
+]
+function funComparison(kg: number): string | null {
+  let best: (typeof WEIGHT_REFS)[number] | null = null
+  for (const r of WEIGHT_REFS) if (kg >= r.kg) best = r
+  if (!best) return null
+  return `≈ ${Math.floor(kg / best.kg)}× ${best.label} raskus 🐘`
+}
+
+function DaySummary({ day }: { day: Day }) {
+  const week = useGymStore((s) => s.week)
+  const logs = useGymStore((s) => s.logs)
+
+  const entries = day.exercises
+    .map((ex) => logs[ex.id]?.at(-1))
+    .filter((log): log is NonNullable<typeof log> => !!log && log.week === week)
+
+  const tonnage = entries.reduce((sum, log) => sum + sessionVolume(log.sets), 0)
+  const totalSets = entries.reduce((n, log) => n + log.sets.length, 0)
+  const totalReps = entries.reduce((n, log) => n + log.sets.reduce((a, s) => a + s.reps, 0), 0)
+  const prs = entries.filter((log) => log.pr).length
+  const progressed = entries.filter((log) => log.change === 'weight_up' || log.change === 'reps_up').length
+  const comparison = funComparison(tonnage)
+
+  return (
+    <div style={S.summary}>
+      <div style={{ fontSize: 30 }}>🎉</div>
+      <div style={{ fontWeight: 900, fontSize: 20 }}>Päev tehtud!</div>
+      {tonnage > 0 && (
+        <>
+          <div style={{ fontWeight: 900, fontSize: 38, color: colors.accent, lineHeight: 1.1 }}>
+            {fmtWeight(Math.round(tonnage))} kg
+          </div>
+          <div style={{ fontSize: 13, color: colors.muted }}>kokku tõstetud</div>
+          {comparison && <div style={{ fontSize: 14, color: colors.green, fontWeight: 700 }}>{comparison}</div>}
+        </>
+      )}
+      <div style={S.summaryStats}>
+        <SummaryStat num={totalSets} label="seeriat" />
+        <SummaryStat num={totalReps} label="kordust" />
+        <SummaryStat num={prs} label="rekordit ★" />
+        <SummaryStat num={progressed} label="läheb raskemaks" />
+      </div>
+    </div>
+  )
+}
+
+function SummaryStat({ num, label }: { num: number; label: string }) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontWeight: 900, fontSize: 24, color: colors.text }}>{num}</div>
+      <div style={{ fontSize: 12, color: colors.faint, marginTop: 2 }}>{label}</div>
+    </div>
   )
 }
 
@@ -218,6 +308,19 @@ const S = {
     userSelect: 'none',
   }),
   content: { padding: '14px 14px 96px', maxWidth: 680, margin: '0 auto' } as CSSProperties,
+  summary: {
+    background: 'linear-gradient(160deg, #1f1d12, #1c1c1c)',
+    border: `1px solid ${colors.accent}`,
+    borderRadius: 14,
+    padding: '20px 16px',
+    marginBottom: 14,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    textAlign: 'center',
+  } as CSSProperties,
+  summaryStats: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, width: '100%', marginTop: 12 } as CSSProperties,
   dayIntro: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: '11px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' } as CSSProperties,
   progBar: { height: 3, background: colors.border, borderRadius: 2, marginBottom: 14 } as CSSProperties,
   statRow: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 } as CSSProperties,

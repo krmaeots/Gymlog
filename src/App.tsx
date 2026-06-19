@@ -1,7 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { BottomNav, type View } from './components/BottomNav'
 import { Header } from './components/Header'
-import { RestTimer } from './components/RestTimer'
 import { Toast } from './components/Toast'
 import { useSession } from './store/useSession'
 import { AdminView } from './views/AdminView'
@@ -35,7 +34,6 @@ export default function App() {
         {view === 'program' && <ProgramEditor />}
         {view === 'admin' && isAdmin && <AdminView />}
       </main>
-      <RestTimer />
       <Toast />
       <BottomNav view={view} onChange={setView} showAdmin={isAdmin} />
     </div>

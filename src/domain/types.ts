@@ -88,8 +88,6 @@ export interface Target {
 
 /** User-tunable behaviour. */
 export interface Settings {
-  /** Default rest-timer duration in seconds. */
-  restSeconds: number
   /** Consecutive stalled weeks before the engine suggests a deload. */
   deloadAfterStalls: number
   /** Fraction of weight removed on a deload (e.g. 0.1 = −10%). */
