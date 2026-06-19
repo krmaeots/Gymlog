@@ -69,7 +69,13 @@ export function Header() {
           💾
         </button>
         {cloudEnabled && session ? (
-          <button style={S.userBtn} onClick={() => void logout()} title="Vaheta kasutajat">
+          <button
+            style={S.userBtn}
+            onClick={() => {
+              if (confirm(`Logi välja (${session.name})?`)) void logout()
+            }}
+            title="Logi välja"
+          >
             {session.name} ⎋
           </button>
         ) : (
