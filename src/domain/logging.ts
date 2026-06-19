@@ -41,14 +41,18 @@ export function buildLogUpdate(args: {
   const sessionTarget: Target = isEdit ? (last?.target ?? currentTarget) : currentTarget
   const priorHistory = isEdit ? history.slice(0, -1) : history
 
-  const next = calcNext(exercise, sets, sessionTarget, priorHistory, settings)
+  const next = calcNext(exercise, sets, sessionTarget, priorHistory, settings, week)
   const pr = isPersonalRecord(exercise, sets, priorHistory)
 
   const entry: LogEntry = { week, date, sets, pr, change: next.change, target: sessionTarget }
 
+  const nextTarget: Target = { weight: next.weight, reps: next.reps, repsHigh: next.repsHigh }
+  // Fixed-rep plans carry the un-deloaded working weight forward; omit otherwise.
+  if (next.base !== undefined) nextTarget.base = next.base
+
   return {
     logs: [...priorHistory, entry],
-    nextTarget: { weight: next.weight, reps: next.reps, repsHigh: next.repsHigh },
+    nextTarget,
     change: next.change,
     pr,
   }

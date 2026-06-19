@@ -241,4 +241,5 @@ export const DEFAULT_PROGRAM: Program = {
 export const DEFAULT_SETTINGS: Settings = {
   deloadAfterStalls: 3,
   deloadFactor: 0.1,
+  deloadEveryWeeks: 0,
 }

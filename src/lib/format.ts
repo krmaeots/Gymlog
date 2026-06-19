@@ -5,11 +5,16 @@ export function fmtWeight(kg: number): string {
   return Number.isInteger(kg) ? String(kg) : kg.toFixed(2).replace(/\.?0+$/, '')
 }
 
-/** "40kg · 6–8k" for weighted, "6–10 kordi" for bodyweight. */
+/**
+ * "40kg · 6–8k" for weighted, "6–10 kordi" for bodyweight. Fixed-rep plans show
+ * the exact per-set scheme instead of a range: "40kg · 10·10·9·8k".
+ */
 export function targetText(exercise: Exercise, target: Target): string {
-  return exercise.hasWeight
-    ? `${fmtWeight(target.weight)}kg · ${target.reps}–${target.repsHigh}k`
-    : `${target.reps}–${target.repsHigh} kordi`
+  const reps =
+    exercise.repScheme && exercise.repScheme.length > 0
+      ? exercise.repScheme.join('·')
+      : `${target.reps}–${target.repsHigh}`
+  return exercise.hasWeight ? `${fmtWeight(target.weight)}kg · ${reps}k` : `${reps} kordi`
 }
 
 /** "40kg × 8 · 40kg × 7" for weighted, "8k · 7k" for bodyweight. */

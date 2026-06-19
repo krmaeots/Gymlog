@@ -21,7 +21,7 @@ import type {
  * never crash or silently corrupt the running app.
  */
 export const STORAGE_KEY = 'gymlog'
-export const CURRENT_SCHEMA_VERSION = 2
+export const CURRENT_SCHEMA_VERSION = 3
 
 const VALID_CHANGES = new Set<ChangeType>(['weight_up', 'reps_up', 'reps_nudge', 'same', 'deload'])
 
@@ -74,7 +74,9 @@ function sanitizeSet(raw: unknown): SetEntry {
 
 function sanitizeTarget(raw: unknown): Target | undefined {
   if (isObj(raw) && isFiniteNum(raw.weight) && isFiniteNum(raw.reps) && isFiniteNum(raw.repsHigh)) {
-    return { weight: raw.weight, reps: raw.reps, repsHigh: raw.repsHigh }
+    const target: Target = { weight: raw.weight, reps: raw.reps, repsHigh: raw.repsHigh }
+    if (isFiniteNum(raw.base)) target.base = raw.base
+    return target
   }
   return undefined
 }
@@ -121,6 +123,9 @@ function sanitizeSettings(raw: unknown): Settings {
       ? s.deloadAfterStalls
       : DEFAULT_SETTINGS.deloadAfterStalls,
     deloadFactor: isFiniteNum(s.deloadFactor) ? s.deloadFactor : DEFAULT_SETTINGS.deloadFactor,
+    deloadEveryWeeks: isFiniteNum(s.deloadEveryWeeks)
+      ? s.deloadEveryWeeks
+      : (DEFAULT_SETTINGS.deloadEveryWeeks ?? 0),
   }
 }
 
@@ -134,7 +139,12 @@ function isValidExercise(e: unknown): e is Exercise {
     isFiniteNum(e.repsHigh) &&
     isFiniteNum(e.weightStart) &&
     isFiniteNum(e.weightStep) &&
-    typeof e.hasWeight === 'boolean'
+    typeof e.hasWeight === 'boolean' &&
+    // Optional fixed-rep prescription: absent, or an array of finite numbers.
+    (e.repScheme === undefined ||
+      (Array.isArray(e.repScheme) && e.repScheme.every(isFiniteNum))) &&
+    // Optional machine/station label: absent or a string.
+    (e.machine === undefined || typeof e.machine === 'string')
   )
 }
 

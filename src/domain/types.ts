@@ -25,6 +25,19 @@ export interface Exercise {
   weightStart: number
   /** True for weighted lifts, false for bodyweight (progress by reps). */
   hasWeight: boolean
+  /**
+   * Fixed per-set rep prescription (one entry per working set). When present
+   * the exercise is in **fixed-rep mode**: the reps are pinned by a coach's
+   * plan every week, so the engine never changes them and only adjusts the
+   * weight (see `calcNext`). Undefined → normal double-progression.
+   */
+  repScheme?: number[]
+  /**
+   * Optional gym machine/station number(s), shown to the user so they know which
+   * machine to use — e.g. "76" or "49 / 50". Free text, not required; omit for
+   * free-weight or bodyweight exercises that have no fixed station.
+   */
+  machine?: string
 }
 
 /** A workout day (e.g. Push / Pull / Legs). */
@@ -84,6 +97,13 @@ export interface Target {
   reps: number
   /** Upper bound of the rep target for the next session. */
   repsHigh: number
+  /**
+   * Fixed-rep mode only: the un-deloaded working weight. A scheduled deload
+   * sets `weight` to a fraction of `base` while keeping `base` intact, so the
+   * week after a deload resumes the working weight instead of building up from
+   * the light one. Absent for normal double-progression exercises.
+   */
+  base?: number
 }
 
 /** User-tunable behaviour. */
@@ -92,6 +112,12 @@ export interface Settings {
   deloadAfterStalls: number
   /** Fraction of weight removed on a deload (e.g. 0.1 = −10%). */
   deloadFactor: number
+  /**
+   * If > 0, a **scheduled** deload every Nth training week (week % N === 0),
+   * used by fixed-rep plans that build in a planned light week. 0 = off
+   * (the default; normal users rely on the stall-based deload above).
+   */
+  deloadEveryWeeks?: number
 }
 
 /** The persisted application state — the single source of truth. */

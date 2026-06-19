@@ -211,3 +211,57 @@ describe('calcNext — deload layer', () => {
     expect(next.change).toBe('same')
   })
 })
+
+describe('calcNext — fixed-rep mode (coach-prescribed plan)', () => {
+  // Reps are pinned by the plan (descending pyramid); only weight should move.
+  const fixed: Exercise = {
+    ...weighted,
+    sets: 4,
+    repsLow: 8,
+    repsHigh: 10,
+    repScheme: [10, 10, 9, 8],
+  }
+  const fixedTarget: Target = { weight: 40, reps: 8, repsHigh: 10 }
+  const fixedBw: Exercise = { ...bodyweight, sets: 3, repScheme: [15, 15, 15] }
+  // 50% scheduled deload every 6th week.
+  const planSettings = { deloadAfterStalls: 0, deloadFactor: 0.5, deloadEveryWeeks: 6 }
+
+  it('adds weight (never reps) when the prescribed reps are met on a majority', () => {
+    const next = calcNext(fixed, sets([40, 10], [40, 10], [40, 9], [40, 8]), fixedTarget, [], planSettings, 1)
+    expect(next.change).toBe('weight_up')
+    expect(next.weight).toBe(42.5) // heaviest set that hit its target + step
+    expect(next.reps).toBe(8) // reps stay pinned to the scheme, not incremented
+    expect(next.repsHigh).toBe(10)
+  })
+
+  it('holds the weight when the prescribed reps are missed', () => {
+    const next = calcNext(fixed, sets([40, 9], [40, 8], [40, 7], [40, 6]), fixedTarget, [], planSettings, 1)
+    expect(next.change).toBe('same')
+    expect(next.weight).toBe(40)
+  })
+
+  it('bodyweight fixed-rep just maintains the prescribed reps', () => {
+    const bwTarget: Target = { weight: 0, reps: 15, repsHigh: 15 }
+    const next = calcNext(fixedBw, sets([0, 15], [0, 15], [0, 15]), bwTarget, [], planSettings, 1)
+    expect(next.change).toBe('same')
+    expect(next.weight).toBe(0)
+    expect(next.reps).toBe(15)
+  })
+
+  it('prescribes a 50% scheduled deload going into the 6th week', () => {
+    // Logging week 5 → next session (week 6) is the deload.
+    const next = calcNext(fixed, sets([40, 10], [40, 10], [40, 9], [40, 8]), fixedTarget, [], planSettings, 5)
+    expect(next.change).toBe('deload')
+    expect(next.weight).toBe(20) // floor(42.5 * 0.5 = 21.25 → step 2.5) = 20
+    expect(next.base).toBe(42.5) // working weight remembered for the resume
+  })
+
+  it('resumes the working weight the week after a deload, ignoring the light sets', () => {
+    // Logging the deload week itself (week 6) at the light weight.
+    const deloadTarget: Target = { weight: 20, reps: 8, repsHigh: 10, base: 42.5 }
+    const next = calcNext(fixed, sets([20, 10], [20, 10], [20, 9], [20, 8]), deloadTarget, [], planSettings, 6)
+    expect(next.change).toBe('same')
+    expect(next.weight).toBe(42.5) // back to the pre-deload working weight
+    expect(next.base).toBe(42.5)
+  })
+})

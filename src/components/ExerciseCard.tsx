@@ -48,7 +48,12 @@ export function ExerciseCard({ exercise: ex, open, onToggle, onSaved }: Props) {
   // (advanced) target; logging within the same week does not remount.
   const [inputs, setInputs] = useState<{ w: string; r: string }[]>(() =>
     Array.from({ length: ex.sets }, (_, i) => {
-      if (!isDone) return { w: String(tgt.weight), r: String(tgt.reps) }
+      if (!isDone) {
+        // Fixed-rep plans pre-fill each set's prescribed reps; otherwise the
+        // single target rep count seeds every set.
+        const reps = ex.repScheme?.[i] ?? tgt.reps
+        return { w: String(tgt.weight), r: String(reps) }
+      }
       // Already logged: show what was actually performed, blank for any set with
       // no record (e.g. set count raised after logging) — never leak next
       // week's prescription into the history display.
@@ -92,6 +97,7 @@ export function ExerciseCard({ exercise: ex, open, onToggle, onSaved }: Props) {
           <div style={S.exNote}>
             {ex.sets} seeriat · {ex.note.replace('🍑 ', '')}
           </div>
+          {ex.machine && <div style={S.machine}>🛠 Masin {ex.machine}</div>}
         </div>
         <div style={S.targetBadge}>{targetText(ex, tgt)}</div>
       </div>
@@ -206,6 +212,7 @@ const S = {
   }),
   exName: { fontWeight: 700, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
   exNote: { fontSize: 13, color: colors.faint, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as CSSProperties,
+  machine: { display: 'inline-block', marginTop: 5, fontSize: 12, fontWeight: 700, color: colors.accent, background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap' } as CSSProperties,
   targetBadge: {
     background: colors.surface2,
     border: `1px solid ${colors.border}`,

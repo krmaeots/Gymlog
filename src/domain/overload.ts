@@ -113,6 +113,77 @@ function baseProgression(exercise: Exercise, sets: SetEntry[], target: Target): 
 }
 
 /**
+ * Fixed-rep progression for coach-prescribed plans (`exercise.repScheme`).
+ *
+ * The per-set reps are pinned by the plan every week, so unlike double
+ * progression this NEVER changes the reps — it only moves the **weight**:
+ * once the prescribed reps are met on a majority of sets, weight rises by one
+ * step (built on the heaviest set that actually hit its target). A *scheduled*
+ * deload (`settings.deloadEveryWeeks`) drops the prescription to `deloadFactor`
+ * of the working weight on every Nth week and resumes the working weight after,
+ * carrying the un-deloaded weight in `target.base`. Bodyweight lifts simply
+ * hold the prescribed reps.
+ *
+ * @param week  The training week this session belongs to (drives the deload
+ *              cadence). 0/absent disables the scheduled deload.
+ */
+function fixedRepsNext(
+  exercise: Exercise,
+  sets: SetEntry[],
+  target: Target,
+  week: number,
+  settings?: Pick<Settings, 'deloadFactor' | 'deloadEveryWeeks'>,
+): Target & { change: ChangeType } {
+  const scheme = exercise.repScheme as number[]
+  const repsLow = Math.min(...scheme)
+  const repsHigh = Math.max(...scheme)
+  const base = target.base ?? target.weight
+  const every = settings?.deloadEveryWeeks ?? 0
+  const factor = settings?.deloadFactor ?? 0.1
+  const canWeight = exercise.hasWeight && exercise.weightStep > 0
+
+  // The week just logged is itself a scheduled deload (light maintenance week).
+  const loggedDeloadWeek = every > 0 && week > 0 && week % every === 0
+
+  let working: number
+  let change: ChangeType
+  if (loggedDeloadWeek || !canWeight) {
+    // Resume (never progress from) the working weight after a deload; bodyweight
+    // lifts just hold the prescribed reps.
+    working = base
+    change = 'same'
+  } else {
+    // Did she hit the prescribed reps on (almost) all sets? Compare each
+    // performed set to its scheme entry (clamped if the set count drifted).
+    const met = sets.filter(
+      (s, i) => s.reps >= (scheme[Math.min(i, scheme.length - 1)] ?? repsHigh),
+    )
+    if (met.length >= Math.max(1, exercise.sets - 1)) {
+      working = roundWeight(Math.max(...met.map((s) => s.weight)) + exercise.weightStep)
+      change = 'weight_up'
+    } else {
+      working = topSetWeight(exercise, sets) || base
+      change = 'same'
+    }
+  }
+
+  // If the upcoming week is a scheduled deload, prescribe the reduced weight but
+  // keep the working weight in `base` so the following week resumes it.
+  if (canWeight && every > 0 && (week + 1) % every === 0) {
+    return {
+      weight: floorToStep(working * (1 - factor), exercise.weightStep),
+      reps: repsLow,
+      repsHigh,
+      base: working,
+      change: 'deload',
+    }
+  }
+  return canWeight
+    ? { weight: working, reps: repsLow, repsHigh, base: working, change }
+    : { weight: 0, reps: repsLow, repsHigh, change }
+}
+
+/**
  * Decide the next prescription for an exercise after a logged session.
  *
  * @param exercise  The exercise definition (rep range, step, weighted?).
@@ -121,14 +192,22 @@ function baseProgression(exercise: Exercise, sets: SetEntry[], target: Target): 
  * @param history   Prior log entries for this exercise (oldest first), NOT
  *                   including the session being logged now.
  * @param settings  Deload tuning (after how many stalls, by how much).
+ * @param week      Training week of this session — only used by fixed-rep plans
+ *                  for the scheduled-deload cadence; ignored otherwise.
  */
 export function calcNext(
   exercise: Exercise,
   sets: SetEntry[],
   target: Target,
   history: LogEntry[] = [],
-  settings?: Pick<Settings, 'deloadAfterStalls' | 'deloadFactor'>,
+  settings?: Pick<Settings, 'deloadAfterStalls' | 'deloadFactor' | 'deloadEveryWeeks'>,
+  week?: number,
 ): Target & { change: ChangeType } {
+  // Coach-prescribed plans use fixed reps + weight-only progression.
+  if (exercise.repScheme && exercise.repScheme.length > 0) {
+    return fixedRepsNext(exercise, sets, target, week ?? 0, settings)
+  }
+
   const result = baseProgression(exercise, sets, target)
 
   // Deload only makes sense for weighted lifts that just stalled again.
