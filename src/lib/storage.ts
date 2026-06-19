@@ -191,3 +191,34 @@ export function saveState(state: GymState): boolean {
     return false
   }
 }
+
+// ── per-profile cache (cloud mode) ───────────────────────────────────
+// Each cloud profile's state is also cached locally so the app loads
+// instantly and keeps working offline; edits are flushed to the cloud when
+// connectivity returns. Validation reuses coerceState, same as local mode.
+
+/** localStorage key holding a cloud profile's cached state. */
+export function userCacheKey(profileId: string): string {
+  return `gymlog:user:${profileId}`
+}
+
+/** Load a cloud profile's cached state, or null if none/invalid. */
+export function loadCachedState(profileId: string): GymState | null {
+  try {
+    const raw = localStorage.getItem(userCacheKey(profileId))
+    return raw ? coerceState(JSON.parse(raw)) : null
+  } catch {
+    return null
+  }
+}
+
+/** Cache a cloud profile's state locally. Returns false if storage is full. */
+export function saveCachedState(profileId: string, state: GymState): boolean {
+  try {
+    localStorage.setItem(userCacheKey(profileId), JSON.stringify(state))
+    return true
+  } catch (err) {
+    console.error('GymLog: failed to cache profile state', err)
+    return false
+  }
+}

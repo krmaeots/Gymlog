@@ -4,6 +4,7 @@ import type { Day, Exercise, GymState, SetEntry, Settings } from '../domain/type
 import { coerceState, loadState, reconcileEntries, saveState, seedState } from '../lib/storage'
 import * as P from '../lib/program'
 import { findExercise } from '../lib/program'
+import { isCloudConfigured } from '../lib/supabase'
 import { useToast } from './useToast'
 
 interface GymActions {
@@ -16,6 +17,9 @@ interface GymActions {
   /** Replace the entire state from imported JSON (validated/migrated). */
   importState: (raw: unknown) => void
   updateSettings: (patch: Partial<Settings>) => void
+
+  /** Replace the whole state (e.g. after a cloud login) without echoing a save. */
+  hydrate: (state: GymState) => void
 
   // ── Program editing ──────────────────────────────────────────────
   addDay: (day: Day) => void
@@ -40,8 +44,43 @@ function persistable(store: GymStore): GymState {
   }, {} as GymState)
 }
 
+// ── persistence machinery ────────────────────────────────────────────
+// The store writes through a swappable sink. In local mode it goes straight to
+// localStorage; in cloud mode the sync layer installs a scheduler via
+// setPersistSink() after login. `suspendPersist` stops a hydrate (loading
+// remote data) from immediately echoing a save back.
+let storageHealthy = true
+let suspendPersist = false
+/** Whether the most recent local persist succeeded (false when storage is full). */
+export const isStorageHealthy = () => storageHealthy
+
+function localPersist(state: GymState) {
+  const ok = saveState(state)
+  // Warn once when persistence first fails (quota exceeded / private mode) so
+  // the user learns their data isn't being saved now — not on the next reload.
+  if (!ok && storageHealthy) {
+    useToast.getState().show('⚠️ Salvestamine ebaõnnestus — mälu võib olla täis')
+  }
+  storageHealthy = ok
+}
+
+let persistSink: (state: GymState) => void = isCloudConfigured ? () => {} : localPersist
+
+/** Swap the persistence sink (used by the cloud sync layer). */
+export function setPersistSink(sink: (state: GymState) => void) {
+  persistSink = sink
+}
+
 export const useGymStore = create<GymStore>((set, get) => ({
-  ...loadState(),
+  // Cloud mode starts from a placeholder seed that login replaces via hydrate();
+  // local mode loads (and migrates) the on-device state immediately.
+  ...(isCloudConfigured ? seedState() : loadState()),
+
+  hydrate: (state) => {
+    suspendPersist = true
+    set(reconcileEntries(state))
+    suspendPersist = false
+  },
 
   logExercise: (exerciseId, sets) => {
     const state = get()
@@ -93,18 +132,9 @@ export const useGymStore = create<GymStore>((set, get) => ({
     set((s) => ({ program: P.moveExercise(s.program, dayKey, exerciseId, direction) })),
 }))
 
-let storageHealthy = true
-/** Whether the most recent persist succeeded (false when storage is full/unavailable). */
-export const isStorageHealthy = () => storageHealthy
-
-// Persist on every change. JSON serialisation drops the action functions, but
+// Persist on every change through the active sink (local or cloud), unless a
+// hydrate is in progress. JSON serialisation drops the action functions, but
 // we select the data slice explicitly to be safe and forward-compatible.
 useGymStore.subscribe((store) => {
-  const ok = saveState(persistable(store))
-  // Warn once when persistence first fails (quota exceeded / private mode) so
-  // the user learns their data isn't being saved now — not on the next reload.
-  if (!ok && storageHealthy) {
-    useToast.getState().show('⚠️ Salvestamine ebaõnnestus — mälu võib olla täis')
-  }
-  storageHealthy = ok
+  if (!suspendPersist) persistSink(persistable(store))
 })

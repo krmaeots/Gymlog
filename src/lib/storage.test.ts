@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_PROGRAM, DEFAULT_SETTINGS } from '../domain/defaultProgram'
 import type { GymState } from '../domain/types'
-import { CURRENT_SCHEMA_VERSION, coerceState, reconcileEntries, seedState } from './storage'
+import {
+  CURRENT_SCHEMA_VERSION,
+  coerceState,
+  loadCachedState,
+  reconcileEntries,
+  saveCachedState,
+  seedState,
+  userCacheKey,
+} from './storage'
 
 const firstExerciseId = DEFAULT_PROGRAM.days[0]!.exercises[0]!.id
 
@@ -103,5 +111,30 @@ describe('export → import round-trip', () => {
     original.settings.restSeconds = 150
     const roundTripped = coerceState(JSON.parse(JSON.stringify(original)))
     expect(roundTripped).toEqual(original)
+  })
+})
+
+describe('per-profile cache (cloud mode)', () => {
+  it('keys the cache by profile id', () => {
+    expect(userCacheKey('abc')).toBe('gymlog:user:abc')
+  })
+
+  it('round-trips a cached profile state', () => {
+    const s = seedState()
+    s.week = 5
+    expect(saveCachedState('u1', s)).toBe(true)
+    expect(loadCachedState('u1')?.week).toBe(5)
+  })
+
+  it('returns null when no cache exists', () => {
+    expect(loadCachedState('missing-profile')).toBeNull()
+  })
+
+  it('sanitises corrupt cached data on load (reuses coerceState)', () => {
+    localStorage.setItem(
+      userCacheKey('u2'),
+      JSON.stringify({ schemaVersion: 2, program: DEFAULT_PROGRAM, logs: { [firstExerciseId]: 5 }, targets: {} }),
+    )
+    expect(loadCachedState('u2')?.logs[firstExerciseId]).toEqual([])
   })
 })

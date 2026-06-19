@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { colors } from '../theme'
 
-export type View = 'workout' | 'history' | 'program'
+export type View = 'workout' | 'history' | 'program' | 'admin'
 
 const ITEMS: { key: View; icon: string; label: string }[] = [
   { key: 'workout', icon: '🏋️', label: 'Treening' },
@@ -9,10 +9,21 @@ const ITEMS: { key: View; icon: string; label: string }[] = [
   { key: 'program', icon: '⚙️', label: 'Kava' },
 ]
 
-export function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+const ADMIN_ITEM = { key: 'admin', icon: '🛡️', label: 'Admin' } as const
+
+export function BottomNav({
+  view,
+  onChange,
+  showAdmin = false,
+}: {
+  view: View
+  onChange: (v: View) => void
+  showAdmin?: boolean
+}) {
+  const items = showAdmin ? [...ITEMS, ADMIN_ITEM] : ITEMS
   return (
     <nav style={S.nav}>
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const active = view === item.key
         return (
           <button key={item.key} style={S.item(active)} onClick={() => onChange(item.key)} aria-current={active}>

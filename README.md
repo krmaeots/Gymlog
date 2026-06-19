@@ -39,6 +39,34 @@ npm run dev        # http://localhost:5173
 Push to `main` — that's it. A GitHub Action builds the app and publishes it to
 GitHub Pages. Enable it once under **Settings → Pages → Source: GitHub Actions**.
 
+## Multi-user & cloud sync (optional)
+
+By default GymLog is single-user and stores everything on-device. You can
+optionally turn on **multi-user cloud sync** so several people log in (pick name
+→ PIN) on their own phones, with an **admin** who manages everyone's plans and
+sees their progress. It uses a free Supabase project as a PIN-gated datastore —
+the app still deploys as a static PWA, no server to run.
+
+**One-time setup**
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the SQL editor, paste and run [`supabase/schema.sql`](supabase/schema.sql).
+3. Create the first admin once (SQL editor):
+   `select gym_bootstrap_admin('YourName', '1234');`
+4. From **Settings → API**, copy the **Project URL** and **anon public key** into:
+   - `.env.local` for local dev (see [`.env.example`](.env.example)), and
+   - GitHub → **Settings → Secrets and variables → Actions → Variables**:
+     `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, then re-deploy.
+
+Now opening the app shows a profile picker. Admins get an **Admin** tab to add
+users, set/reset PINs, and edit anyone's plan or view their charts. Everyone
+else sees only their own data.
+
+> The anon key is **public by design** — security is enforced by row-level
+> security + the PIN-checked functions in the SQL, not by hiding the key. A PIN
+> is a keep-honest lock, not strong security; workout data isn't sensitive.
+> Conflicts resolve last-write-wins per person.
+
 ## Architecture
 
 React + TypeScript, built with Vite. State lives in small Zustand stores and is

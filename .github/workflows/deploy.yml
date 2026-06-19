@@ -36,6 +36,13 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Optional — set as repo Variables (Settings → Secrets and variables →
+          # Actions → Variables). Absent ⇒ the build runs in local-only mode.
+          # The anon key is public-safe; security is enforced by RLS in
+          # supabase/schema.sql.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
 
       - uses: actions/upload-pages-artifact@v3
         with:

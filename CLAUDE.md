@@ -36,16 +36,20 @@ src/
     overload.ts      THE progression engine (calcNext, 1RM, PR, deload)
     overload.test.ts
   lib/               Pure helpers
-    storage.ts       load/save + legacy-data migration + seeding
+    storage.ts       load/save + legacy-data migration + per-profile cache
     program.ts       Immutable program edits (add/move/remove…)
     format.ts        Display formatting (Estonian)
     id.ts            id generation
+    supabase.ts      Cloud client + typed RPC wrappers (cloud mode only)
+    sync.ts          Debounced push + offline retry (the persist sink in cloud mode)
   store/             Zustand stores (the only stateful layer)
     useGymStore.ts   Main app state + all mutations; persists on change
+    useSession.ts    Cloud login/session, profile list, sync status
     useRestTimer.ts  Rest countdown (interval lives here)
     useToast.ts      Transient messages
   components/        Reusable UI (ExerciseCard, LineChart, RestTimer, …)
-  views/             Top-level screens (Workout / History / ProgramEditor)
+  views/             Top-level screens (Workout / History / ProgramEditor /
+                     LoginView / AdminView)
   theme.ts           Design tokens (colours, change-type styling)
   App.tsx            Shell: Header + view switch + BottomNav
 ```
@@ -70,6 +74,38 @@ Base rule is **double progression**, ported verbatim from the original app:
 
 This logic is pure and covered by `overload.test.ts`. **If you change it, update
 the tests in the same edit** — the algorithm is the product's main value.
+
+### Cloud sync & multi-user (optional)
+
+The app runs in one of two modes, decided at build time by whether
+`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are set (`isCloudConfigured` in
+`lib/supabase.ts`):
+
+- **Local mode** (no env vars): single user, state in `localStorage` key
+  `gymlog`. This is the default and keeps tests/dev simple.
+- **Cloud mode**: a login gate (`LoginView`: pick name → PIN). Each person is a
+  row in the Supabase `profiles` table holding their full `GymState` as jsonb.
+  Admins get an `AdminView` to create users, reset PINs, and edit/inspect any
+  user's plan and progress.
+
+How it fits together without touching the pure core:
+- `useGymStore` persists through a **swappable sink** (`setPersistSink`). Local
+  mode → `saveState`. Cloud mode → `sync.ts` (cache locally + debounced
+  `gym_push`). `hydrate()` loads a profile's state after login without echoing a
+  save back.
+- Backend is **Supabase as a PIN-gated datastore, not Supabase Auth**. RLS
+  blocks all direct table access; everything goes through `SECURITY DEFINER`
+  RPCs that bcrypt-verify the PIN (`supabase/schema.sql`). The anon key is public
+  by design.
+- Conflict policy is **last-write-wins per profile**; admin plan edits use
+  `gym_admin_push_program` which merges only `program`+`settings`, never a
+  user's logged sets.
+- `ProgramEditor`/`HistoryView` expose a `*Body` variant taking data via props
+  (a `ProgramEditApi`) so the same UI serves the user's Kava tab and the admin's
+  "Manage" screen.
+
+Setup + the SQL live in `supabase/schema.sql` and the README. A PIN is a
+keep-honest lock, not strong security — workout data is not sensitive.
 
 ## Conventions
 

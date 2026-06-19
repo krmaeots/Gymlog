@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { LineChart, type ChartPoint } from '../components/LineChart'
-import type { Exercise, LogEntry } from '../domain/types'
+import type { Exercise, LogEntry, Program } from '../domain/types'
 import { estimate1RM, sessionVolume, topSetWeight } from '../domain/overload'
 import { fmtDate, fmtWeight, setsSummary } from '../lib/format'
 import { useGymStore } from '../store/useGymStore'
@@ -32,9 +32,21 @@ function metricUnit(metric: Metric, exercise: Exercise): string {
   return metric === 'volume' ? 'kg maht' : 'kg'
 }
 
+/** Store-backed history for the logged-in user. */
 export function HistoryView() {
   const program = useGymStore((s) => s.program)
   const logs = useGymStore((s) => s.logs)
+  return <HistoryViewBody program={program} logs={logs} />
+}
+
+/** Presentational history/charts over any program + logs (reused by the admin). */
+export function HistoryViewBody({
+  program,
+  logs,
+}: {
+  program: Program
+  logs: Record<string, LogEntry[]>
+}) {
   const [metric, setMetric] = useState<Metric>('weight')
   const [openId, setOpenId] = useState<string | null>(null)
 

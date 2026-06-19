@@ -1,9 +1,51 @@
-import { useState, type CSSProperties } from 'react'
-import type { Day, Exercise } from '../domain/types'
+import { createContext, useContext, useState, type CSSProperties } from 'react'
+import type { Day, Exercise, Program, Settings } from '../domain/types'
 import { makeId } from '../lib/id'
 import { targetText } from '../lib/format'
 import { useGymStore } from '../store/useGymStore'
 import { colors } from '../theme'
+
+/**
+ * The set of operations the editor needs. Backed by the GymStore for the
+ * logged-in user (the Kava tab), or by admin-held local state when editing
+ * another user's plan. Provided via context so the nested editors stay simple.
+ */
+export interface ProgramEditApi {
+  program: Program
+  settings: Settings
+  updateSettings: (patch: Partial<Settings>) => void
+  addDay: (day: Day) => void
+  updateDay: (dayKey: string, patch: Partial<Omit<Day, 'exercises'>>) => void
+  removeDay: (dayKey: string) => void
+  addExercise: (dayKey: string, exercise: Exercise) => void
+  updateExercise: (dayKey: string, exerciseId: string, patch: Partial<Exercise>) => void
+  removeExercise: (dayKey: string, exerciseId: string) => void
+  moveExercise: (dayKey: string, exerciseId: string, direction: -1 | 1) => void
+}
+
+const ApiContext = createContext<ProgramEditApi | null>(null)
+
+function useApi(): ProgramEditApi {
+  const api = useContext(ApiContext)
+  if (!api) throw new Error('ProgramEditApi context is missing')
+  return api
+}
+
+/** Build a {@link ProgramEditApi} bound to the logged-in user's store. */
+function useStoreProgramApi(): ProgramEditApi {
+  return {
+    program: useGymStore((s) => s.program),
+    settings: useGymStore((s) => s.settings),
+    updateSettings: useGymStore((s) => s.updateSettings),
+    addDay: useGymStore((s) => s.addDay),
+    updateDay: useGymStore((s) => s.updateDay),
+    removeDay: useGymStore((s) => s.removeDay),
+    addExercise: useGymStore((s) => s.addExercise),
+    updateExercise: useGymStore((s) => s.updateExercise),
+    removeExercise: useGymStore((s) => s.removeExercise),
+    moveExercise: useGymStore((s) => s.moveExercise),
+  }
+}
 
 function newExercise(): Exercise {
   return {
@@ -23,29 +65,33 @@ function newDay(): Day {
   return { key: makeId('day'), name: 'Uus päev', sub: '', exercises: [] }
 }
 
+/** Store-backed program editor for the logged-in user (Kava tab). */
 export function ProgramEditor() {
-  const program = useGymStore((s) => s.program)
-  const addDay = useGymStore((s) => s.addDay)
+  return <ProgramEditorBody api={useStoreProgramApi()} />
+}
 
+/** Editor over any {@link ProgramEditApi} — reused by the admin "Manage" screen. */
+export function ProgramEditorBody({ api }: { api: ProgramEditApi }) {
   return (
-    <div style={S.content}>
-      <SettingsPanel />
+    <ApiContext.Provider value={api}>
+      <div style={S.content}>
+        <SettingsPanel />
 
-      <div style={S.sectionTitle}>Treeningkava</div>
-      {program.days.map((day) => (
-        <DayEditor key={day.key} day={day} />
-      ))}
+        <div style={S.sectionTitle}>Treeningkava</div>
+        {api.program.days.map((day) => (
+          <DayEditor key={day.key} day={day} />
+        ))}
 
-      <button style={S.addDayBtn} onClick={() => addDay(newDay())}>
-        + Lisa treeningpäev
-      </button>
-    </div>
+        <button style={S.addDayBtn} onClick={() => api.addDay(newDay())}>
+          + Lisa treeningpäev
+        </button>
+      </div>
+    </ApiContext.Provider>
   )
 }
 
 function SettingsPanel() {
-  const settings = useGymStore((s) => s.settings)
-  const updateSettings = useGymStore((s) => s.updateSettings)
+  const { settings, updateSettings } = useApi()
 
   return (
     <div style={S.block}>
@@ -92,9 +138,7 @@ function SettingsPanel() {
 
 function DayEditor({ day }: { day: Day }) {
   const [open, setOpen] = useState(false)
-  const updateDay = useGymStore((s) => s.updateDay)
-  const removeDay = useGymStore((s) => s.removeDay)
-  const addExercise = useGymStore((s) => s.addExercise)
+  const { updateDay, removeDay, addExercise } = useApi()
 
   return (
     <div style={S.block}>
@@ -161,9 +205,7 @@ function ExerciseEditor({
   isLast: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const update = useGymStore((s) => s.updateExercise)
-  const remove = useGymStore((s) => s.removeExercise)
-  const move = useGymStore((s) => s.moveExercise)
+  const { updateExercise: update, removeExercise: remove, moveExercise: move } = useApi()
 
   const num = (field: keyof Exercise, opts?: { min?: number; step?: number }) => (
     <input
